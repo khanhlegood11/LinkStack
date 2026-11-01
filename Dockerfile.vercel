@@ -11,25 +11,17 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-# The legacy lock file misclassifies production requirements and contains
-# unused development packages flagged as malware. Strip require-dev only in
-# this build-stage copy, then create a complete, consistent production lock.
-RUN php -r '$config = json_decode(file_get_contents("composer.json"), true, 512, JSON_THROW_ON_ERROR); unset($config["require-dev"]); file_put_contents("composer.json", json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));' \
-    && composer update \
-        --no-dev \
-        --no-interaction \
-        --no-progress \
-        --no-scripts \
-        --optimize-autoloader \
-        --prefer-dist \
-    && cp composer.json /tmp/composer.production.json \
-    && cp composer.lock /tmp/composer.production.lock
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader \
+    --prefer-dist
 
 COPY . .
 
-RUN cp /tmp/composer.production.json composer.json \
-    && cp /tmp/composer.production.lock composer.lock \
-    && cp storage/templates/advanced-config.php config/advanced-config.php \
+RUN cp storage/templates/advanced-config.php config/advanced-config.php \
     && mkdir -p \
         assets/favicon/icons \
         assets/img/background-img \
