@@ -163,6 +163,7 @@
 
 <script src="{{ asset('assets/external-dependencies/jquery-1.12.4.min.js') }}"></script>
 </section>
+@if(env('ENABLE_THEME_UPDATER') == 'true')
 <script>
 $(window).on('load', function() {
     var placeholder = $('#ajax-container');
@@ -178,6 +179,7 @@ $(window).on('load', function() {
     });
 });
 </script>
+@endif
 <script type="text/javascript">$("iframe").load(function() { $("iframe").contents().find("a").each(function(index) { $(this).on("click", function(event) { event.preventDefault(); event.stopPropagation(); }); }); });</script>
 
 @push('sidebar-scripts')

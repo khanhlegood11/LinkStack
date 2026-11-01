@@ -28,6 +28,7 @@ use App\Models\Button;
 use App\Models\Link;
 use App\Models\Page;
 use App\Models\UserData;
+use App\Support\RuntimeSettings;
 
 class AdminController extends Controller
 {
@@ -573,9 +574,13 @@ class AdminController extends Controller
   //Saves .env config
   public function editENV(request $request)
   {
-    $config = $request->altConfig;
+    $config = (string) $request->altConfig;
 
-    file_put_contents(".env", $config);
+    if (RuntimeSettings::hasEnvFile()) {
+      file_put_contents(base_path(".env"), $config);
+    } else {
+      RuntimeSettings::saveEditableEnv($config);
+    }
 
     return Redirect("/admin/config?alternative-config");
   }

@@ -9,6 +9,7 @@ $utrue = "<td style=\"text-align: center; cursor: help;\" title=\"".__('messages
 $ufalse = "<td style=\"text-align: center; cursor: help;\" title=\"".__('messages.ufalse')."\"><i class='bi bi-check-lg'></i></td>";
 $unull = "<td style=\"text-align: center; cursor: help;\" title=\"".__('messages.unull')."\">➖</td>";
 
+if (!function_exists('getUrlSatusCode')) {
 function getUrlSatusCode($url, $timeout = 3)
  {
  $ch = curl_init();
@@ -22,14 +23,20 @@ function getUrlSatusCode($url, $timeout = 3)
  curl_close($ch);
  return $status;
  }
+}
 
 //Files or directories to test if writable
 $wrt1 = is_writable(base_path('.env'));
 $wrt2 = is_writable(base_path('database/database.sqlite'));
 
 //Files or directories to test if accessible externally
-$url1 = getUrlSatusCode(url('.env'));
-$url2 = getUrlSatusCode(url('database/database.sqlite'));
+if (env('VERCEL')) {
+    $url1 = 404;
+    $url2 = 404;
+} else {
+    $url1 = getUrlSatusCode(url('.env'));
+    $url2 = getUrlSatusCode(url('database/database.sqlite'));
+}
 
 ?>
 
@@ -102,4 +109,5 @@ $url2 = getUrlSatusCode(url('database/database.sqlite'));
         <tr><td>XML {{__('messages.PHP Extension')}}</td><td id="dp">@if(extension_loaded('XML'))<i class='bi bi-check-lg'></i>@else<i class='bi bi-x'></i>@endif</td></tr>
         <tr><td>SQLite {{__('messages.PHP Extension')}}</td><td id="dp">@if(extension_loaded('PDO_SQLite'))<i class='bi bi-check-lg'></i>@else<i class='bi bi-x'></i>@endif</td></tr>
         <tr><td>MySQL {{__('messages.PHP Extension')}}</td><td id="dp">@if(extension_loaded('PDO_MySQL'))<i class='bi bi-check-lg'></i>@else<i class='bi bi-x'></i>@endif</td></tr>
+        <tr><td>PostgreSQL {{__('messages.PHP Extension')}}</td><td id="dp">@if(extension_loaded('pdo_pgsql'))<i class='bi bi-check-lg'></i>@else<i class='bi bi-x'></i>@endif</td></tr>
         </table>

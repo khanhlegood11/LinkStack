@@ -89,9 +89,12 @@
         </div>
         
 <?php
-phpinfo();
-phpinfo(INFO_MODULES);
-
+if (env('VERCEL')) {
+    phpinfo(INFO_GENERAL | INFO_CONFIGURATION | INFO_MODULES);
+} else {
+    phpinfo();
+    phpinfo(INFO_MODULES);
+}
 ?>
     </div>  
 </body>

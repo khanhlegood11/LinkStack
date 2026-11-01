@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Support\RuntimeEnvEditor;
+use App\Support\RuntimeSettings;
 use GeoSot\EnvEditor\EnvEditor;
 use GeoSot\EnvEditor\ServiceProvider as EnvEditorServiceProvider;
 use Illuminate\Config\Repository;
@@ -38,6 +39,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        RuntimeSettings::boot();
+
         if (env('FORCE_ROUTE_HTTPS') == 'true' || env('FORCE_HTTPS') == 'true') {
             URL::forceScheme('https');
         }
