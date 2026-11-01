@@ -195,7 +195,7 @@ if (isset($_COOKIE['LinkCount'])) {
                                 </div>
                             
                                 <ul class="pagination justify-content-center">
-                                    {!! $links ?? ''->links() !!}
+                                    {!! $links->links() !!}
                                 </ul>
                             
                                 @if(count($links) > 3)<a class="btn btn-primary" href="{{ url('/studio/add-link') }}">{{__('messages.Add new Link')}}</a>@endif
@@ -260,8 +260,11 @@ if (isset($_COOKIE['LinkCount'])) {
                                     
                                     if (!function_exists('iconclicks')) {
                                         function iconclicks($icon) {
-                                            $iconClicks = searchIcon($icon);
-                                            $iconClicks = DB::table('links')->where('id', $iconClicks)->value('click_number');
+                                            $iconId = searchIcon($icon);
+                                            if (empty($iconId)) {
+                                                return 0;
+                                            }
+                                            $iconClicks = DB::table('links')->where('id', $iconId)->value('click_number');
                                             if (is_null($iconClicks)){
                                                 return 0;
                                             } else {
@@ -278,7 +281,7 @@ if (isset($_COOKIE['LinkCount'])) {
                                                     <div class="input-group">
                                                       <span class="input-group-text"><i class="fab fa-'.$name.'"></i></span>
                                                       <input type="url" class="form-control" name="'.$name.'" value="'.iconLink($name).'" />
-                                                      '.(searchIcon($name) != NULL ? '<a href="'.route("deleteLink", searchIcon($name)).'" class="btn btn-danger"><i class="bi bi-trash-fill"></i></a>' : '').'
+                                                      '.(searchIcon($name) ? '<a href="'.route("deleteLink", searchIcon($name)).'" class="btn btn-danger"><i class="bi bi-trash-fill"></i></a>' : '').'
                                                     </div>
                                                   </div>';
                                         }
