@@ -11,7 +11,10 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
 
-RUN composer install \
+# The legacy lock file places these production requirements in packages-dev.
+# Re-resolve only them (and their dependencies) before creating the prod autoloader.
+RUN composer update symfony/yaml nunomaduro/collision \
+    --with-all-dependencies \
     --no-dev \
     --no-interaction \
     --no-progress \
