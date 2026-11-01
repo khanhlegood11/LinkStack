@@ -5,7 +5,6 @@
 !.env.example
 .dockerignore
 Dockerfile.vercel
-Caddyfile.vercel
 vercel.json
 INSTALLING
 database/database.sqlite
