@@ -115,6 +115,9 @@ class UserTable extends DataTableComponent
             Column::make(__('messages.Last seen'), "updated_at")
                 ->sortable()
                 ->format(function ($value) {
+                    if (!$value) {
+                        return '';
+                    }
                     $now = now();
                     $diff = $now->diff($value);
             

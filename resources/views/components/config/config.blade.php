@@ -156,6 +156,7 @@ input[type=radio] + label {
 </style>
 
 <?php 
+if (!function_exists('toggle')) {
 function toggle($key){
 	echo '
     <form id="'.$key.'-form" action="'.route('editConfig').'" enctype="multipart/form-data" method="post">
@@ -176,10 +177,12 @@ document.getElementById("'.$key.'-form").addEventListener("change", function() {
     </form>
 	';
 }
+}
 ?>
 
 
 <?php 
+if (!function_exists('toggle2')) {
 function toggle2($key){
 	echo '
     <form id="'.$key.'-form" action="'.route('editConfig').'" enctype="multipart/form-data" method="post">
@@ -200,12 +203,14 @@ document.getElementById("'.$key.'-form").addEventListener("change", function() {
     </form>
 	';
 }
+}
 ?>
 
 
 <?php 
+if (!function_exists('text')) {
 function text($key){
-    $configValue = str_replace('"', "", EnvEditor::getKey($key));
+    $configValue = htmlspecialchars(str_replace('"', "", (string) EnvEditor::getKey($key)), ENT_QUOTES, 'UTF-8');
 	echo '
     <form id="'.$key.'-form" action="'.route('editConfig').'" enctype="multipart/form-data" method="post">
     <div class="form-group col-lg-8">
@@ -220,6 +225,7 @@ function text($key){
     </div></div>
     </form>
 	';
+}
 }
 ?>
 

@@ -12,7 +12,8 @@ class RuntimeEnvEditor extends EnvEditor
             return parent::keyExists($key);
         }
 
-        return array_key_exists($key, $_ENV)
+        return RuntimeSettings::isEditable($key)
+            || array_key_exists($key, $_ENV)
             || array_key_exists($key, $_SERVER)
             || getenv($key) !== false;
     }
@@ -23,17 +24,37 @@ class RuntimeEnvEditor extends EnvEditor
             return parent::getKey($key, $default);
         }
 
-        $raw = $_ENV[$key] ?? $_SERVER[$key] ?? null;
-        if ($raw === null) {
-            $envVal = getenv($key);
-            $raw = $envVal !== false ? $envVal : null;
+        return RuntimeSettings::get($key, $default);
+    }
+
+    /**
+     * @param array<string, int|string> $options
+     */
+    public function addKey(string $key, mixed $value, array $options = []): bool
+    {
+        if ($this->hasEnvFile()) {
+            return parent::addKey($key, $value, $options);
         }
 
-        if (is_bool($raw)) {
-            return $raw ? 'true' : 'false';
+        return RuntimeSettings::set($key, $value);
+    }
+
+    public function editKey(string $keyToChange, mixed $newValue): bool
+    {
+        if ($this->hasEnvFile()) {
+            return parent::editKey($keyToChange, $newValue);
         }
 
-        return ($raw !== null && $raw !== '') ? $raw : $default;
+        return RuntimeSettings::set($keyToChange, $newValue);
+    }
+
+    public function deleteKey(string $key): bool
+    {
+        if ($this->hasEnvFile()) {
+            return parent::deleteKey($key);
+        }
+
+        return RuntimeSettings::delete($key);
     }
 
     private function hasEnvFile(): bool
