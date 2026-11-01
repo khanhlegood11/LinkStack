@@ -34,6 +34,10 @@ return [
     */
 
     'mailers' => [
+        'array' => [
+            'transport' => 'array',
+        ],
+
         'sendmail' => [
             'transport' => 'sendmail',
             'path' => env('MAIL_SENDMAIL', '/usr/sbin/sendmail -bs'),

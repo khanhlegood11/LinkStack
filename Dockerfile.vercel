@@ -1,0 +1,63 @@
+FROM dunglas/frankenphp:1-php8.2-bookworm AS base
+
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && install-php-extensions bcmath exif gd intl mbstring pdo_pgsql zip
+
+WORKDIR /app
+
+FROM base AS dependencies
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock ./
+
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --no-progress \
+    --no-scripts \
+    --optimize-autoloader \
+    --prefer-dist
+
+COPY . .
+
+RUN cp storage/templates/advanced-config.php config/advanced-config.php \
+    && mkdir -p \
+        assets/favicon/icons \
+        assets/img/background-img \
+        public/resources \
+        public/vendor/livewire/livewire/dist \
+        storage/framework/cache/data \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
+    && ln -s ../assets public/assets \
+    && ln -s ../themes public/themes \
+    && ln -s ../../resources/ckeditor public/resources/ckeditor \
+    && cp vendor/livewire/livewire/dist/livewire.js public/vendor/livewire/livewire/dist/livewire.js \
+    && composer dump-autoload --no-dev --classmap-authoritative
+
+FROM base AS runtime
+
+COPY --from=dependencies --chown=www-data:www-data /app /app
+COPY --chown=www-data:www-data Caddyfile.vercel /etc/caddy/Caddyfile
+COPY --chown=www-data:www-data docker/vercel-entrypoint.sh /usr/local/bin/vercel-entrypoint
+
+RUN setcap CAP_NET_BIND_SERVICE=+eip /usr/local/bin/frankenphp \
+    && chmod +x /usr/local/bin/vercel-entrypoint
+
+ENV PORT=80 \
+    APP_ENV=production \
+    APP_DEBUG=false \
+    LOG_CHANNEL=stderr \
+    CACHE_DRIVER=array \
+    SESSION_DRIVER=cookie \
+    QUEUE_CONNECTION=sync \
+    VIEW_COMPILED_PATH=/tmp/linkstack/views \
+    XDG_CONFIG_HOME=/tmp/caddy/config \
+    XDG_DATA_HOME=/tmp/caddy/data
+
+USER www-data
+
+CMD ["vercel-entrypoint"]

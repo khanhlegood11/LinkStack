@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+.dockerignore
+Dockerfile.vercel
+Caddyfile.vercel
+vercel.json
+INSTALLING
+database/database.sqlite
+node_modules
+tests
+vendor
+storage/backups/*
+storage/logs/*
