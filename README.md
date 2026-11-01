@@ -16,6 +16,7 @@
 <p align="center">
   <a href="#Function">Function</a> •
   <a href="#About">About</a> •
+  <a href="#Architecture">Architecture</a> •
   <a href="#Instances">Instances</a> •
   <a href="#Themes">Themes</a> •
   <a href="#Installation">Installation</a> •
@@ -74,6 +75,13 @@ For those who may not have the technical expertise to self-host, we also offer f
 
 Our goal is to provide a free version of a link-sharing service, similar to Linktree, while empowering users to take ownership of their data. We will never sell user data and believe in providing a trustworthy and transparent solution for managing and sharing links online.
 	    
+<br>
+
+<a name="Architecture"></a>
+## Architecture
+
+The current system design is documented with C4 System Context, Container, Component, Code, dynamic, and deployment diagrams in the [C4 architecture documentation (Vietnamese)](docs/architecture/c4.md).
+
 <br>
 	    
 <a name="Instances"></a>
