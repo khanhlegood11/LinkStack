@@ -8,8 +8,13 @@ if (!function_exists('getFavIcon')) {
             $link = Link::find($id);
             $url = $link->link;
 
+            // Vercel has no durable local filesystem, so let the browser fetch the icon.
+            if (env('VERCEL')) {
+                return 'https://www.google.com/s2/favicons?sz=256&domain=' . rawurlencode($url);
+            }
+
             // Use Google's Favicon API
-            $faviconUrl = 'http://www.google.com/s2/favicons?sz=256&domain=' . $url;
+            $faviconUrl = 'https://www.google.com/s2/favicons?sz=256&domain=' . rawurlencode($url);
 
             // Get the favicon and save it to the desired location
             $favicon = file_get_contents($faviconUrl);

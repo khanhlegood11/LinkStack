@@ -22,17 +22,24 @@ use App\Models\User;
 |
 */
 
+// Vercel supplies installation state and configuration through environment variables.
+$appInstalled = env('APP_INSTALLED', false) || file_exists(base_path('storage/app/ISINSTALLED'));
+
 // Prevents section below from being run by 'composer update'
-if(file_exists(base_path('storage/app/ISINSTALLED'))){
+if(!env('VERCEL') && file_exists(base_path('storage/app/ISINSTALLED'))){
   // generates new APP KEY if no one is set
   if(EnvEditor::getKey('APP_KEY')==''){try{Artisan::call('key:generate');} catch (exception $e) {}}
- 
+
   // copies template meta config if none is present
   if(!file_exists(base_path("config/advanced-config.php"))){copy(base_path('storage/templates/advanced-config.php'), base_path('config/advanced-config.php'));}
  }
 
+Route::get('/health', function () {
+    return response()->json(['status' => 'ok']);
+});
+
  // Installer
-if(file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK'))){
+if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
 
   Route::get('/', [InstallerController::class, 'showInstaller'])->name('showInstaller');
   Route::post('/create-admin', [InstallerController::class, 'createAdmin'])->name('createAdmin');

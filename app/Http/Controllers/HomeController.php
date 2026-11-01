@@ -19,7 +19,7 @@ class HomeController extends Controller
 
         $countButton = Button::count();
 
-        $updatedPages = DB::table('links')->join('users', 'users.id', '=', 'links.user_id')->select('users.littlelink_name', 'users.image', DB::raw('max(links.created_at) as created_at'))->groupBy('links.user_id')->orderBy('created_at', 'desc')->take(4)->get();
+        $updatedPages = DB::table('links')->join('users', 'users.id', '=', 'links.user_id')->select('users.littlelink_name', 'users.image', DB::raw('max(links.created_at) as created_at'))->groupBy('users.id', 'users.littlelink_name', 'users.image')->orderBy('created_at', 'desc')->take(4)->get();
 
         return view('home', ['message' => $message, 'countButton' => $countButton, 'updatedPages' => $updatedPages]);
     }
@@ -31,7 +31,7 @@ class HomeController extends Controller
 
         $countButton = Button::count();
 
-        $updatedPages = DB::table('links')->join('users', 'users.id', '=', 'links.user_id')->select('users.littlelink_name', 'users.image', DB::raw('max(links.created_at) as created_at'))->groupBy('links.user_id')->orderBy('created_at', 'desc')->take(4)->get();
+        $updatedPages = DB::table('links')->join('users', 'users.id', '=', 'links.user_id')->select('users.littlelink_name', 'users.image', DB::raw('max(links.created_at) as created_at'))->groupBy('users.id', 'users.littlelink_name', 'users.image')->orderBy('created_at', 'desc')->take(4)->get();
 
         return view('demo', ['message' => $message, 'countButton' => $countButton, 'updatedPages' => $updatedPages]);
     }

@@ -1,0 +1,12 @@
+:{$PORT:80} {
+    root * /app/public
+
+    encode zstd gzip
+
+    @sourceFiles path *.php
+    respond @sourceFiles 404
+
+    php_server {
+        try_files {path} index.php
+    }
+}

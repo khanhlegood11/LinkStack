@@ -626,7 +626,7 @@ class UserController extends Controller
         $sharebtn = $request->sharebtn;
         $tablinks = $request->tablinks;
 
-        if(env('HOME_URL') !== '' && $pageName != $littlelink_name && $littlelink_name == env('HOME_URL')){
+        if(!env('VERCEL') && env('HOME_URL') !== '' && $pageName != $littlelink_name && $littlelink_name == env('HOME_URL')){
             EnvEditor::editKey('HOME_URL', $pageName);
         }
     
