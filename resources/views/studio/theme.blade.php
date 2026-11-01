@@ -161,26 +161,7 @@
 
 @endforeach
 
-<script src="{{ asset('assets/external-dependencies/jquery-1.12.4.min.js') }}"></script>
 </section>
-@if(env('ENABLE_THEME_UPDATER') == 'true')
-<script>
-$(window).on('load', function() {
-    var placeholder = $('#ajax-container');
-    var lazyElement = $('#my-lazy-element');
-    
-    $.ajax({
-        url: '../theme-updater',
-        success: function(response) {
-            placeholder.replaceWith(lazyElement);
-            
-            lazyElement.html(response);
-        }
-    });
-});
-</script>
-@endif
-<script type="text/javascript">$("iframe").load(function() { $("iframe").contents().find("a").each(function(index) { $(this).on("click", function(event) { event.preventDefault(); event.stopPropagation(); }); }); });</script>
 
 @push('sidebar-scripts')
     <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -265,12 +246,36 @@ $(window).on('load', function() {
     </div>
     </div>
 <script>
-      function setTheme(themeName) {
+    function setTheme(themeName) {
         const selectElement = document.getElementById('theme-select');
         selectElement.querySelector('option').value = themeName;
         selectElement.form.submit();
-      }
-  </script>
+    }
+
+    // Reuse the jQuery bundle loaded by the sidebar instead of replacing it
+    // with an older version (and losing its registered plugins).
+    jQuery('#frPreview').on('load', function() {
+        jQuery(this).contents().find('a').on('click', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+    });
+
+    @if(env('ENABLE_THEME_UPDATER') == 'true')
+    jQuery(window).on('load', function() {
+        var placeholder = jQuery('#ajax-container');
+        var lazyElement = jQuery('#my-lazy-element');
+
+        jQuery.ajax({
+            url: '../theme-updater',
+            success: function(response) {
+                placeholder.replaceWith(lazyElement);
+                lazyElement.html(response);
+            }
+        });
+    });
+    @endif
+</script>
 @endpush
 
 @endsection
