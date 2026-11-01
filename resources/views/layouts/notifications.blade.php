@@ -2,6 +2,7 @@
 use App\Models\UserData;
 $GLOBALS['activenotify'] = true;
 $compromised = false;
+if (!function_exists('notification')) {
 function notification($dismiss = '', $ntid, $heading, $body) {
     $closeMSG = __('messages.Close');
     $dismissMSG = __('messages.Dismiss');
@@ -31,7 +32,9 @@ function notification($dismiss = '', $ntid, $heading, $body) {
     </div>
 MODAL;
 }
+}
 
+if (!function_exists('notificationCard')) {
 function notificationCard($ntid, $icon, $heading, $subheading) {
   echo "<a data-bs-target=\"#{$ntid}\" data-bs-toggle=\"modal\" style=\"cursor:pointer!important;\" class=\"iq-sub-card\">
           <div class=\"d-flex align-items-center\">
@@ -45,10 +48,12 @@ function notificationCard($ntid, $icon, $heading, $subheading) {
           </div>
         </a>";
 }
+}
 
 //security check, checks if config files got compromised
-if(auth()->user()->role == 'admin'){
+if(auth()->user()->role == 'admin' && !env('VERCEL')){
 
+if (!function_exists('getUrlSatusCodesb')) {
 function getUrlSatusCodesb($urlsb, $timeoutsb = 3)
  {
  $chsb = curl_init();
@@ -62,6 +67,7 @@ function getUrlSatusCodesb($urlsb, $timeoutsb = 3)
  curl_close($chsb);
  return $status;
  }
+}
 
 // Files or directories to test if accessible externally
 $url1sb = getUrlSatusCodesb(url('.env'));

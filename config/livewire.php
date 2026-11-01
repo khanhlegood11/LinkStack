@@ -122,7 +122,7 @@ return [
     |
     */
 
-    'manifest_path' => null,
+    'manifest_path' => env('LIVEWIRE_MANIFEST_PATH', env('VERCEL') ? '/tmp/linkstack/livewire-components.php' : null),
 
     /*
     |--------------------------------------------------------------------------

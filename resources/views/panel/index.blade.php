@@ -42,7 +42,7 @@
                                                           </div>                                                        
                                                           @else
                                                           @foreach($toplinks as $link)
-                                                            @php $linkName = str_replace('default ','',$link->name) @endphp
+                                                            @php $linkName = str_replace('default ', '', $link->name ?? '') @endphp
                                                             @php  $i++; @endphp
                                                       
                                                             @if($link->name !== "phone" && $link->name !== 'heading' && $link->button_id !== 96)

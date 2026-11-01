@@ -2,10 +2,16 @@
 
 namespace App\Providers;
 
+use App\Support\RuntimeEnvEditor;
+use GeoSot\EnvEditor\EnvEditor;
+use GeoSot\EnvEditor\ServiceProvider as EnvEditorServiceProvider;
+use Illuminate\Config\Repository;
+use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 
 class AppServiceProvider extends ServiceProvider
@@ -17,7 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(EnvEditor::class, function ($app) {
+            return new RuntimeEnvEditor(
+                new Repository(config(EnvEditorServiceProvider::PACKAGE, [])),
+                $app->make(Filesystem::class)
+            );
+        });
     }
 
     /**
@@ -27,6 +38,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        if (env('FORCE_ROUTE_HTTPS') == 'true' || env('FORCE_HTTPS') == 'true') {
+            URL::forceScheme('https');
+        }
         Paginator::useBootstrap();
         Validator::extend('isunique', function ($attribute, $value, $parameters, $validator) {
             $value = strtolower($value);

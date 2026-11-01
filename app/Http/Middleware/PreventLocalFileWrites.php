@@ -10,6 +10,8 @@ class PreventLocalFileWrites
     private const BLOCKED_PATHS = [
         'backup',
         'clearIcon/*',
+        'env-editor',
+        'env-editor/*',
         'import-data',
         'admin/advanced-config',
         'admin/backups',
