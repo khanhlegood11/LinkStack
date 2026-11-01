@@ -22,9 +22,9 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 });
 
 // Temporary release endpoint. It is removed after the initial deployment.
-Route::post('/deploy/migrate', function (Request $request) {
+Route::match(['get', 'post'], '/deploy/migrate', function (Request $request) {
     $expectedToken = env('DEPLOY_MIGRATION_TOKEN');
-    $providedToken = (string) $request->bearerToken();
+    $providedToken = (string) ($request->bearerToken() ?: $request->query('token'));
 
     abort_unless(
         is_string($expectedToken) && $expectedToken !== '' && hash_equals($expectedToken, $providedToken),
