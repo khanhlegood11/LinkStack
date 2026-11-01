@@ -71,10 +71,12 @@ class AdminController extends Controller
 
     $links = Link::where("user_id", $userId)->select("link")->count();
     $clicks = Link::where("user_id", $userId)->sum("click_number");
-    $topLinks = Link::where("user_id", $userId)
-      ->orderby("click_number", "desc")
-      ->whereNotNull("link")
-      ->where("link", "<>", "")
+    $topLinks = Link::leftJoin("buttons", "buttons.id", "=", "links.button_id")
+      ->where("links.user_id", $userId)
+      ->orderBy("links.click_number", "desc")
+      ->whereNotNull("links.link")
+      ->where("links.link", "<>", "")
+      ->select("links.*", "buttons.name")
       ->take(5)
       ->get();
 
@@ -190,7 +192,7 @@ class AdminController extends Controller
     $status = $request->verify;
 
     if ($status == "true") {
-      $verify = "0000-00-00 00:00:00";
+      $verify = Carbon::now();
     } else {
       $verify = null;
     }

@@ -10,7 +10,7 @@ return [
         // .env file directory
         'env' => base_path(),
         //backup files directory
-        'backupDirectory' => 'backups',
+        'backupDirectory' => env('VERCEL') ? '/tmp/linkstack/env-backups' : 'backups',
     ],
     // .env file name
     'envFileName' => '.env',
