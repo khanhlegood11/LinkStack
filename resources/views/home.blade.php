@@ -271,7 +271,7 @@
     <script src="{{asset('assets/vendor/aos/dist/aos.js')}}"></script>
     
     <!-- App Script -->
-    <script src="{{asset('assets/js/hope-ui.js')}}" defer></script>
+    <script src="{{asset('assets/js/hope-ui.js?v=2.0.1')}}" defer></script>
     
     <!-- Flatpickr Script -->
     <script src="{{asset('assets/vendor/flatpickr/dist/flatpickr.min.js')}}"></script>
