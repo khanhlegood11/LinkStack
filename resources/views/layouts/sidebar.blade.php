@@ -718,11 +718,16 @@ $usrhandl = Auth::user()->littlelink_name;
       </div>
       </div>
 
-      <script>
+      <script id="qr-download-script">
         document.addEventListener("DOMContentLoaded", function() {
             var downloadButton = document.getElementById("downloadButton");
             var generatedImage = document.getElementById("generatedImage");
-        
+
+            // SVG QR codes do not render a download button.
+            if (!downloadButton || !generatedImage) {
+                return;
+            }
+
             downloadButton.addEventListener("click", function() {
                 var format = generatedImage.getAttribute("data-format") || "png";
                 var downloadLink = document.createElement("a");
@@ -764,7 +769,7 @@ $usrhandl = Auth::user()->littlelink_name;
     <script src="{{asset('assets/vendor/aos/dist/aos.js')}}"></script>
     
     <!-- App Script -->
-    <script src="{{asset('assets/js/hope-ui.js')}}" defer></script>
+    <script src="{{asset('assets/js/hope-ui.js?v=2.0.2')}}" defer></script>
     
     <!-- Flatpickr Script -->
     <script src="{{asset('assets/vendor/flatpickr/dist/flatpickr.min.js')}}"></script>
