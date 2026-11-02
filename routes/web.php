@@ -38,97 +38,26 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
-// TEMPORARY diagnostic route (removed after troubleshooting).
-Route::get('/__diagnose-view', function () {
-    if (request('token') !== 'ls-diag-8f3b21c9') {
+// TEMPORARY verification route (removed after the fix is confirmed).
+Route::get('/__verify-links', function () {
+    if (request('token') !== 'ls-verify-8f3b21c9') {
         abort(404);
     }
 
-    $case = (string) request('case', 'links');
-    $result = ['case' => $case, 'ok' => false];
-
-    $write = function (string $key, array $payload) {
-        try {
-            \Illuminate\Support\Facades\DB::table('runtime_settings')->updateOrInsert(
-                ['key' => $key],
-                [
-                    'value' => substr(json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR), 0, 8000),
-                    'created_at' => \Carbon\Carbon::now(),
-                    'updated_at' => \Carbon\Carbon::now(),
-                ]
-            );
-        } catch (\Throwable $e) {
-            // Nothing else we can do.
-        }
-    };
-
-    $report = fn (array $payload) => $write('__diag_result', $payload);
-
-    register_shutdown_function(function () use ($write, $case) {
-        $error = error_get_last();
-        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_RECOVERABLE_ERROR], true)) {
-            $write('__diag_fatal', ['case' => $case, 'fatal' => $error]);
-        }
-    });
-
-    \Illuminate\Support\Facades\View::composer('*', function ($view) use ($report) {
-        $report(['stage' => 'view:' . $view->getName()]);
-    });
+    Auth::loginUsingId((int) request('user', 1));
+    $started = microtime(true);
 
     try {
-        Auth::loginUsingId((int) request('user', 1));
+        $html = app(UserController::class)->showLinks()->render();
 
-        switch ($case) {
-            case 'query':
-                $links = \App\Models\Link::select()
-                    ->where('user_id', Auth::id())
-                    ->orderBy('up_link', 'asc')
-                    ->orderBy('order', 'asc')
-                    ->paginate(99999);
-                $result['total'] = $links->total();
-                $result['ok'] = true;
-                break;
-            case 'cookie':
-                setcookie('LinkCount', '', time() - 3600);
-                $result['ok'] = true;
-                break;
-            case 'view':
-                $links = \App\Models\Link::select()
-                    ->where('user_id', Auth::id())
-                    ->orderBy('up_link', 'asc')
-                    ->orderBy('order', 'asc')
-                    ->paginate(99999);
-                $result['bytes'] = strlen(view('studio/links', ['links' => $links, 'pagePage' => 10])->render());
-                $result['ok'] = true;
-                break;
-            case 'layout':
-                $result['bytes'] = strlen(view('layouts.sidebar')->render());
-                $result['ok'] = true;
-                break;
-            case 'dashboard':
-                $result['bytes'] = strlen(app(AdminController::class)->index()->render());
-                $result['ok'] = true;
-                break;
-            case 'links':
-            default:
-                $result['bytes'] = strlen(app(UserController::class)->showLinks()->render());
-                $result['ok'] = true;
-                break;
-        }
+        return response('OK bytes=' . strlen($html) . ' seconds=' . round(microtime(true) - $started, 2), 200)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
     } catch (\Throwable $e) {
-        $result['error'] = get_class($e) . ': ' . $e->getMessage();
-        $result['where'] = $e->getFile() . ':' . $e->getLine();
-        $result['trace'] = substr($e->getTraceAsString(), 0, 1200);
-        if ($e->getPrevious()) {
-            $result['previous'] = get_class($e->getPrevious()) . ': ' . $e->getPrevious()->getMessage();
-        }
+        return response(get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine(), 200)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
     }
-
-    $report($result);
-
-    return response($result['ok'] ? 'DIAG_OK' : 'DIAG_ERROR', 200)
-        ->header('Content-Type', 'text/plain; charset=UTF-8');
 })->middleware('web');
+
 
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
@@ -164,7 +93,7 @@ Route::get('/@', function () {
 
 //Show diagnose page
 Route::get('/panel/diagnose', function () {
-        return view('panel/diagnose', []);
+        return view('panel.diagnose', []);
 });
 
 //Public route
@@ -196,14 +125,13 @@ Route::group([
     'middleware' => env('REGISTER_AUTH'),
 ], function () {
 if(env('FORCE_ROUTE_HTTPS') == 'true'){URL::forceScheme('https');}
-if(isset($_COOKIE['LinkCount'])){if($_COOKIE['LinkCount'] == '20'){$LinkPage = 'showLinks20';}elseif($_COOKIE['LinkCount'] == '30'){$LinkPage = 'showLinks30';}elseif($_COOKIE['LinkCount'] == 'all'){$LinkPage = 'showLinksAll';} else {$LinkPage = 'showLinks';}} else {$LinkPage = 'showLinks';} //Shows correct link number
 Route::get('/dashboard', [AdminController::class, 'index'])->name('panelIndex');
 Route::get('/studio/index', function(){return redirect(url('dashboard'));});
 Route::get('/studio/add-link', [UserController::class, 'AddUpdateLink'])->name('showButtons');
 Route::post('/studio/edit-link', [UserController::class, 'saveLink'])->name('addLink');
 Route::get('/studio/edit-link/{id}', [UserController::class, 'AddUpdateLink'])->name('showLink')->middleware('link-id');
 Route::post('/studio/sort-link', [UserController::class, 'sortLinks'])->name('sortLinks');
-Route::get('/studio/links', [UserController::class, $LinkPage])->name($LinkPage);
+Route::get('/studio/links', [UserController::class, 'showLinks'])->name('showLinks');
 Route::get('/studio/theme', [UserController::class, 'showTheme'])->name('showTheme');
 Route::post('/studio/theme', [UserController::class, 'editTheme'])->name('editTheme');
 Route::get('/deleteLink/{id}', [UserController::class, 'deleteLink'])->name('deleteLink')->middleware('link-id');

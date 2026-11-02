@@ -2,15 +2,7 @@
 
 @section('content')
 
-<?php use App\Models\Button; 
-
-// Check if the LinkCount cookie is set
-if (isset($_COOKIE['LinkCount'])) {
-  // Set the expiration time of the cookie to one hour in the past
-  setcookie('LinkCount', '', time() - 3600);
-}
-
-?>
+<?php use App\Models\Button; ?>
 
 <style>
 .sortable-handle {
@@ -121,7 +113,7 @@ if (isset($_COOKIE['LinkCount'])) {
                                                     </div>
                             
                                                     <div class='col' class="text-right">
-                                                        {{Str::limit($link->params['text'] ?? null, 150)  }}
+                                                        {{ Str::limit((string) ($link->params['text'] ?? ''), 150) }}
                             
                                                         @if($link->typename == 'video')
                                                             @php
@@ -163,7 +155,7 @@ if (isset($_COOKIE['LinkCount'])) {
                                                                </span>
                                                             </a>
 
-                                                            @if(env('ENABLE_BUTTON_EDITOR') === true)
+                                                            @if(filter_var(env('ENABLE_BUTTON_EDITOR', true), FILTER_VALIDATE_BOOLEAN))
                                                             @if(($link->button_id == '1' || $link->button_id == '2') && $link->type == 'link')
                                                                 <a style="float: right;" href="{{ route('editCSS', $link->id ) }}" class="btn btn-sm me-1 btn-icon btn-success" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Add" data-bs-placement="top" data-original-title="{{__('messages.Customize')}}">
                                                                     <span class="btn-inner">
@@ -228,105 +220,56 @@ if (isset($_COOKIE['LinkCount'])) {
                                 <div class="form-group col-lg-8">
                             
                                     @php
-                                    if (!function_exists('iconLink')) {
-                                        function iconLink($icon) {
-                                            $iconLink = DB::table('links')
-                                                ->where('user_id', Auth::id())
-                                                ->where('title', $icon)
-                                                ->where('button_id', 94)
-                                                ->value('link');
-                                            if (is_null($iconLink)){
-                                                return false;
-                                            } else {
-                                                return $iconLink;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (!function_exists('searchIcon')) {
-                                        function searchIcon($icon) {
-                                            $iconId = DB::table('links')
-                                                ->where('user_id', Auth::id())
-                                                ->where('title', $icon)
-                                                ->where('button_id', 94)
-                                                ->value('id');
-                                            if (is_null($iconId)){
-                                                return false;
-                                            } else {
-                                                return $iconId;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (!function_exists('iconclicks')) {
-                                        function iconclicks($icon) {
-                                            $iconId = searchIcon($icon);
-                                            if (empty($iconId)) {
-                                                return 0;
-                                            }
-                                            $iconClicks = DB::table('links')->where('id', $iconId)->value('click_number');
-                                            if (is_null($iconClicks)){
-                                                return 0;
-                                            } else {
-                                                return $iconClicks;
-                                            }
-                                        }
-                                    }
-                                    
-                                    if (!function_exists('icon')) {
-                                        function icon($name, $label) {
-                                            echo '<div class="mb-3">
-                                                    <label class="form-label">'.$label.'</label>
-                                                    <span class="form-text" style="font-size: 90%; font-style: italic;">'.__('messages.Clicks').': '.iconclicks($name).'</span>
-                                                    <div class="input-group">
-                                                      <span class="input-group-text"><i class="fab fa-'.$name.'"></i></span>
-                                                      <input type="url" class="form-control" name="'.$name.'" value="'.iconLink($name).'" />
-                                                      '.(searchIcon($name) ? '<a href="'.route("deleteLink", searchIcon($name)).'" class="btn btn-danger"><i class="bi bi-trash-fill"></i></a>' : '').'
-                                                    </div>
-                                                  </div>';
-                                        }
-                                    }
+                                    // Load all page-icon links in ONE query. The previous
+                                    // implementation issued ~4 queries for each of the 18
+                                    // icons (72+ round trips to a remote database), which
+                                    // exceeded PHP's 30 second execution limit on Vercel.
+                                    $iconRows = DB::table('links')
+                                        ->where('user_id', Auth::id())
+                                        ->where('button_id', 94)
+                                        ->get(['id', 'title', 'link', 'click_number'])
+                                        ->keyBy('title');
+
+                                    $renderIcon = function ($name, $label) use ($iconRows) {
+                                        $row = $iconRows->get($name);
+                                        $url = $row ? (string) $row->link : '';
+                                        $clicks = $row ? (int) $row->click_number : 0;
+                                        $deleteButton = $row
+                                            ? '<a href="' . e(route('deleteLink', $row->id)) . '" class="btn btn-danger"><i class="bi bi-trash-fill"></i></a>'
+                                            : '';
+
+                                        return '<div class="mb-3">'
+                                            . '<label class="form-label">' . e($label) . '</label>'
+                                            . '<span class="form-text" style="font-size: 90%; font-style: italic;">'
+                                            . e(__('messages.Clicks')) . ': ' . $clicks . '</span>'
+                                            . '<div class="input-group">'
+                                            . '<span class="input-group-text"><i class="fab fa-' . e($name) . '"></i></span>'
+                                            . '<input type="url" class="form-control" name="' . e($name) . '" value="' . e($url) . '" />'
+                                            . $deleteButton
+                                            . '</div></div>';
+                                    };
                                     @endphp
                                     <style>input{border-top-right-radius: 0.25rem!important; border-bottom-right-radius: 0.25rem!important;}</style>
-                            
-                            
-                                {!!icon('mastodon', 'Mastodon')!!}
-                            
-                                {!!icon('instagram', 'Instagram')!!}
-                            
-                                {!!icon('x-twitter', 'X')!!}
-                            
-                                {!!icon('facebook', 'Facebook')!!}
-                            
-                                {!!icon('github', 'GitHub')!!}
-                            
-                                {!!icon('twitch', 'Twitch')!!}
-                            
-                                {!!icon('linkedin', 'LinkedIn')!!}
-                            
-                                {!!icon('tiktok', 'TikTok')!!}
-                            
-                                {!!icon('discord', 'Discord')!!}
-                            
-                                {!!icon('youtube', 'YouTube')!!}
-                            
-                                {!!icon('snapchat', 'Snapchat')!!}
-                            
-                                {!!icon('reddit', 'Reddit')!!}
-                            
-                                {!!icon('pinterest', 'Pinterest')!!}
 
-                                {!!icon('telegram', 'Telegram')!!}
-
-                                {!!icon('whatsapp', 'WhatsApp')!!}
-
-                                {!! icon('behance', 'Behance') !!}
-
-                                {!! icon('dribbble', 'Dribble') !!}
-
-                                {!! icon('bluesky', 'Bluesky') !!}
-
-                                {!! icon('threads', 'Threads') !!}
+                                {!! $renderIcon('mastodon', 'Mastodon') !!}
+                                {!! $renderIcon('instagram', 'Instagram') !!}
+                                {!! $renderIcon('x-twitter', 'X') !!}
+                                {!! $renderIcon('facebook', 'Facebook') !!}
+                                {!! $renderIcon('github', 'GitHub') !!}
+                                {!! $renderIcon('twitch', 'Twitch') !!}
+                                {!! $renderIcon('linkedin', 'LinkedIn') !!}
+                                {!! $renderIcon('tiktok', 'TikTok') !!}
+                                {!! $renderIcon('discord', 'Discord') !!}
+                                {!! $renderIcon('youtube', 'YouTube') !!}
+                                {!! $renderIcon('snapchat', 'Snapchat') !!}
+                                {!! $renderIcon('reddit', 'Reddit') !!}
+                                {!! $renderIcon('pinterest', 'Pinterest') !!}
+                                {!! $renderIcon('telegram', 'Telegram') !!}
+                                {!! $renderIcon('whatsapp', 'WhatsApp') !!}
+                                {!! $renderIcon('behance', 'Behance') !!}
+                                {!! $renderIcon('dribbble', 'Dribble') !!}
+                                {!! $renderIcon('bluesky', 'Bluesky') !!}
+                                {!! $renderIcon('threads', 'Threads') !!}
 
                         
                             

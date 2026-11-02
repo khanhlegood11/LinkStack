@@ -698,7 +698,7 @@ $usrhandl = Auth::user()->littlelink_name;
                   $imgType = 'svg';
                 }
 
-              } catch(exception $e) {
+              } catch(\Throwable $e) {
                 $imgSrc = url('/assets/linkstack/images/themes/no-preview.png');
                 $imgType = NULL;
               }
