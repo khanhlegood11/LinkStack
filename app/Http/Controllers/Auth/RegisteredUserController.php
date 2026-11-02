@@ -30,16 +30,20 @@ class RegisteredUserController extends Controller
         $currentHandle = Auth::check() ? (string) Auth::user()->littlelink_name : null;
         $submitted = trim((string) $request->input('littlelink_name', ''));
 
-        if ($currentHandle !== null && strcasecmp($submitted, $currentHandle) === 0) {
+        if ($submitted !== '' && $currentHandle !== null && strcasecmp($submitted, $currentHandle) === 0) {
             return response()->json(['valid' => true]);
         }
+
+        $uniqueRule = Auth::check()
+            ? Rule::unique('users', 'littlelink_name')->ignore(Auth::id())
+            : 'unique:users,littlelink_name';
 
         $validator = Validator::make($request->all(), [
             'littlelink_name' => [
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('users', 'littlelink_name')->ignore(Auth::id()),
+                $uniqueRule,
                 'regex:/^[\p{L}0-9-_]+$/u',
             ],
         ]);

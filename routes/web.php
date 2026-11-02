@@ -38,29 +38,32 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
-// Temporary authenticated render probe; removed after verification.
-Route::get('/__verify-page', function (Illuminate\Http\Request $request) {
-    if ($request->query('token') !== 'ls-verify-page-8f3b21c9') {
+// Temporary handle-validation probe; removed after verification.
+Route::get('/__verify-handle', function (Illuminate\Http\Request $request) {
+    if ($request->query('token') !== 'ls-verify-handle-8f3b21c9') {
         abort(404);
     }
-
-    $start = microtime(true);
 
     try {
         $user = User::findOrFail((int) $request->query('user', 1));
         Auth::login($user);
-        $pages = User::where('id', $user->id)
-            ->select('littlelink_name', 'littlelink_description', 'image', 'name')
-            ->get();
-        $html = view('studio.page', ['pages' => $pages])->render();
+        $other = User::where('id', '!=', $user->id)->firstOrFail();
+        $controller = new \App\Http\Controllers\Auth\RegisteredUserController();
 
-        preg_match('/var exceptionvar = (.*?);<\/script>/', $html, $m);
-        return response('OK bytes=' . strlen($html)
-            . ' handle=' . $user->littlelink_name
-            . ' broken_script=' . (strpos($html, 'var exceptionvar = " value=') !== false ? 'yes' : 'no')
-            . ' exceptionvar=' . (isset($m[1]) ? trim($m[1]) : 'missing')
-            . ' ckeditor_items=' . (strpos($html, "'exportPDF'") !== false ? 'legacy' : 'trimmed')
-            . ' seconds=' . round(microtime(true) - $start, 2), 200)
+        $probe = function ($handle) use ($controller) {
+            $probeRequest = Illuminate\Http\Request::create(
+                '/validate-handle',
+                'POST',
+                ['littlelink_name' => $handle]
+            );
+
+            return $controller->validateHandle($probeRequest)->getContent();
+        };
+
+        return response('OK user=' . $user->id
+            . ' own=' . $probe($user->littlelink_name)
+            . ' other=' . $probe($other->littlelink_name)
+            . ' empty=' . $probe(''), 200)
             ->header('Content-Type', 'text/plain');
     } catch (\Throwable $e) {
         return response('ERROR ' . get_class($e) . ': ' . $e->getMessage(), 500)
