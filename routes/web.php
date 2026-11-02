@@ -216,7 +216,7 @@ Route::get('/__verify-assets', function () {
         $data = [];
         if ($name === 'panel.site') { $data = ['home_message' => 'default']; }
         if ($name === 'studio.theme') { $data = ['pages' => \App\Models\User::where('id', 1)->select('littlelink_name', 'theme')->get()]; }
-        if ($name === 'panel.edit-user') { $data = ['user' => \App\Models\User::find(1)]; }
+        if ($name === 'panel.edit-user') { $data = ['user' => \App\Models\User::where('id', 1)->get()]; }
         try {
             $html = view($name, $data)->render();
             return response('OK ' . $name . ' bytes=' . strlen($html)
@@ -239,7 +239,7 @@ Route::get('/__verify-assets', function () {
             'login' => ['auth.login', []],
             'site_panel' => ['panel.site', ['home_message' => 'default']],
             'studio_theme' => ['studio.theme', ['pages' => \App\Models\User::where('id', 1)->select('littlelink_name', 'theme')->get()]],
-            'edit_user' => ['panel.edit-user', ['user' => \App\Models\User::find(1)]],
+            'edit_user' => ['panel.edit-user', ['user' => \App\Models\User::where('id', 1)->get()]],
             'delete_theme' => ['panel.theme', []],
         ];
         foreach ($views as $label => [$view, $data]) {
@@ -293,6 +293,11 @@ Route::get('/__verify-assets', function () {
     $out[] = 'favicon_exists=' . (siteImageExists('favicon') ? 'yes' : 'no');
     $out[] = 'bg_exists=' . (hasBackground(1) ? 'yes' : 'no');
     $out[] = 'db_themes=' . implode(',', dbThemeSlugs());
+    $out[] = 'route_delbg=' . route('delUserBackground', ['id' => 1]);
+    $out[] = 'available=' . implode(',', array_column(availableThemes(), 'slug'));
+    $slug = dbThemeSlugs()[0] ?? '';
+    $out[] = 'theme_config=' . ($slug === '' ? '-' : (themeConfigValue($slug, 'allow_custom_background') ?? '-'));
+    $out[] = 'theme_css_url=' . ($slug === '' ? '-' : themeFileUrl($slug, 'share.button.css'));
     return response(implode(' ', $out), 200)->header('Content-Type', 'text/plain');
 });
 
