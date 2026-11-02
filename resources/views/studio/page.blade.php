@@ -234,7 +234,7 @@
                           <span class="input-group-text" id="basic-addon3">{{str_replace(['http://', 'https://'], '', url(''))}}/@</span>
                           <input type="littlelink_name" class="form-control" id="littlelink_name" name="littlelink_name" aria-describedby="littlelink_name" value="{{ $page->littlelink_name ?? '' }}" :value="old('littlelink_name')" required autofocus >
                         </div>
-                        <script>var exceptionvar = " value="{{ $page->littlelink_name }}";</script>
+                        <script>var exceptionvar = @json((string) ($page->littlelink_name ?? ''));</script>
                         @include('auth.url-validation')
                 
                          <label style="margin-top:15px">{{__('messages.Display name')}}</label>
@@ -248,7 +248,7 @@
                 
                     <div class="form-group col-lg-8">
                         <label>{{__('messages.Page Description')}}</label>
-                        <textarea class="form-control @if(env('ALLOW_USER_HTML') === true) ckeditor @endif" name="pageDescription" rows="3">{{ $page->littlelink_description ?? '' }}</textarea>
+                        <textarea class="form-control @if(filter_var(env('ALLOW_USER_HTML', true), FILTER_VALIDATE_BOOLEAN)) ckeditor @endif" name="pageDescription" rows="3">{{ $page->littlelink_description ?? '' }}</textarea>
                     </div>
                 
                     @if(auth()->user()->role == 'admin' || auth()->user()->role == 'vip')
@@ -282,45 +282,26 @@
                     <button id="submit-btn" type="submit" class="mt-3 ml-3 btn btn-primary">{{__('messages.Save')}}</button>
                 </form>
 
-                @if(env('ALLOW_USER_HTML') === true)
+                @if(filter_var(env('ALLOW_USER_HTML', true), FILTER_VALIDATE_BOOLEAN))
                 <script src="{{ asset('assets/external-dependencies/ckeditor.js') }}"></script>
                 <script>
                   ClassicEditor
                       .create(document.querySelector('.ckeditor'), {
+                          // Keep this list in sync with the plugins bundled in
+                          // assets/external-dependencies/ckeditor.js. Requesting
+                          // items for missing plugins only produces
+                          // "toolbarview-item-unavailable" console warnings.
                           toolbar: {
                               items: [
-                                  'exportPDF', 'exportWord', '|',
-                                  'findAndReplace', 'selectAll', '|',
                                   'heading', '|',
-                                  'bold', 'italic', 'strikethrough', 'underline', 'code', 'subscript', 'superscript', 'removeFormat', '|',
-                                  'bulletedList', 'numberedList', 'todoList', '|',
+                                  'bold', 'italic', '|',
+                                  'bulletedList', 'numberedList', '|',
                                   'outdent', 'indent', '|',
-                                  'undo', 'redo',
-                                  'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'highlight', '|',
-                                  'alignment', '|',
                                   'link', 'blockQuote', '|',
-                                  'specialCharacters', 'horizontalLine', '|',
-                                  'textPartLanguage', '|',
+                                  'selectAll', '|',
+                                  'undo', 'redo'
                               ],
                               shouldNotGroupWhenFull: true
-                          },
-                          fontFamily: {
-                              options: [
-                                  'default',
-                                  'Arial, Helvetica, sans-serif',
-                                  'Courier New, Courier, monospace',
-                                  'Georgia, serif',
-                                  'Lucida Sans Unicode, Lucida Grande, sans-serif',
-                                  'Tahoma, Geneva, sans-serif',
-                                  'Times New Roman, Times, serif',
-                                  'Trebuchet MS, Helvetica, sans-serif',
-                                  'Verdana, Geneva, sans-serif'
-                              ],
-                              supportAllValues: true
-                          },
-                          fontSize: {
-                              options: [10, 12, 14, 'default', 18, 20, 22],
-                              supportAllValues: true
                           },
                           link: {
                               addTargetToExternalLinks: true, // Add this option to open external links in a new tab
