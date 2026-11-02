@@ -6,23 +6,7 @@
   <meta charset="utf-8">
 
   @php $GLOBALS['themeName'] = config('advanced-config.home_theme'); @endphp
-  <?php
-  // Theme Config
-  function theme($key){
-  $key = trim($key);
-  $file = base_path('themes/' . $GLOBALS['themeName'] . '/config.php');
-    if (file_exists($file)) {
-      $config = include $file;
-    if (isset($config[$key])) {
-      return $config[$key];
-  }}
-  return null;}
-  
-  // Theme Custom Asset
-  function themeAsset($path){
-  $path = url('themes/' . $GLOBALS['themeName'] . '/extra/custom-assets/' . $path);
-  return $path;}
-  ?>
+  {{-- theme() and themeAsset() are defined in app/Functions/functions.php --}}
 
   <!-- Custom icons font-awesome -->
   <script>{!! file_get_contents(base_path("assets/external-dependencies/fontawesome.js")) !!}</script>
@@ -30,18 +14,24 @@
 
   @include('layouts.fonts') 
 
-  @if(theme('enable_custom_code') == "true" and theme('enable_custom_head') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')@include($GLOBALS['themeName'] . '.extra.custom-head')@endif
+  @if(theme('enable_custom_code') == "true" and theme('enable_custom_head') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')
+    @if(dbThemeExists($GLOBALS['themeName']))
+      {!! themeCustomCode($GLOBALS['themeName'], 'head') !!}
+    @else
+      @includeIf($GLOBALS['themeName'] . '.extra.custom-head')
+    @endif
+  @endif
 
   @if($GLOBALS['themeName'] != '' and $GLOBALS['themeName'] != 'default')
-  <link rel="stylesheet" href="themes/{{$GLOBALS['themeName']}}/share.button.css">
+  <link rel="stylesheet" href="{{ themeFileUrl($GLOBALS['themeName'], 'share.button.css') }}">
   @if(theme('use_default_buttons') == "true")
   <link rel="stylesheet" href="{{ asset('assets/linkstack/css/brands.css') }}">
   @else
-  <link rel="stylesheet" href="themes/{{$GLOBALS['themeName']}}/brands.css">
+  <link rel="stylesheet" href="{{ themeFileUrl($GLOBALS['themeName'], 'brands.css') }}">
   @endif
-  <link rel="stylesheet" href="themes/{{$GLOBALS['themeName']}}/skeleton-auto.css">
-@if(file_exists(base_path('themes/' . $GLOBALS['themeName'] . '/animations.css')))
-  <link rel="stylesheet" href="<?php echo asset('themes/' . $GLOBALS['themeName'] . '/animations.css') ?>">
+  <link rel="stylesheet" href="{{ themeFileUrl($GLOBALS['themeName'], 'skeleton-auto.css') }}">
+@if(themeFileExists($GLOBALS['themeName'], 'animations.css'))
+  <link rel="stylesheet" href="{{ themeFileUrl($GLOBALS['themeName'], 'animations.css') }}">
 @else
   <link rel="stylesheet" href="{{ asset('assets/linkstack/css/animations.css') }}">
 @endif
@@ -60,7 +50,13 @@
 </head>
 <body>
 
-@if(theme('enable_custom_code') == "true" and theme('enable_custom_body') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')@include($GLOBALS['themeName'] . '.extra.custom-body')@endif
+@if(theme('enable_custom_code') == "true" and theme('enable_custom_body') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')
+  @if(dbThemeExists($GLOBALS['themeName']))
+    {!! themeCustomCode($GLOBALS['themeName'], 'body') !!}
+  @else
+    @includeIf($GLOBALS['themeName'] . '.extra.custom-body')
+  @endif
+@endif
 
 @if($GLOBALS['themeName'] != '' and $GLOBALS['themeName'] != 'default')
     <!-- Enables parallax background animations -->
@@ -87,8 +83,8 @@
     <div class="row">
       <div class="column" style="margin-top: 15%">
 
-        @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-        <img alt="avatar" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" width="auto" height="128px">
+        @if(siteImageExists('avatar'))
+        <img alt="avatar" src="{{ siteImageUrl('avatar') }}" width="auto" height="128px">
         @else
         <div class="logo-container fadein">
           <img src="{{ asset('assets/linkstack/images/logo.svg') }}" alt="Logo" style="width:150px; height:150px;">
@@ -121,7 +117,7 @@
                  @elseif($button['button'] === "custom" and $button['custom_css'] != "")
                  <div style="--delay: {{ $initial++ }}s" class="button-entrance"><a class="button button-hover icon-hover" style="{{ $button['custom_css'] }}" rel="noopener noreferrer nofollow" href="{{ $button['link'] }}" @if(theme('open_links_in_same_tab') != "true")target="_blank"@endif >@if($button['icon'] == 'llc')<img alt="button-icon" class="icon hvr-icon" src="{{ asset('\/assets/linkstack/icons\/')}}llc.svg">@else<i style="color: {{$button['icon']}}" class="icon hvr-icon fa {{$button['icon']}}"></i>@endif{{ $button['title'] }}</a></div>
                  @elseif($button['button'] === "buy me a coffee")
-                 <div style="--delay: {{ $initial++ }}s" class="button-entrance"><a class="button button-coffee button button-hover icon-hover" rel="noopener noreferrer nofollow" href="{{ $button['link'] }}" @if(theme('open_links_in_same_tab') != "true")target="_blank"@endif ><img alt="button-icon" class="icon hvr-icon" src="@if(theme('use_custom_icons') == "true"){{ url('themes/' . $GLOBALS['themeName'] . '/extra/custom-icons')}}/coffee{{theme('custom_icon_extension')}} @else{{ asset('\/assets/linkstack/icons\/')}}coffee.svg @endif">Buy me a Coffee</a></div>
+                 <div style="--delay: {{ $initial++ }}s" class="button-entrance"><a class="button button-coffee button button-hover icon-hover" rel="noopener noreferrer nofollow" href="{{ $button['link'] }}" @if(theme('open_links_in_same_tab') != "true")target="_blank"@endif ><img alt="button-icon" class="icon hvr-icon" src="@if(theme('use_custom_icons') == "true"){{ themeFileUrl($GLOBALS['themeName'], 'extra/custom-icons/coffee' . theme('custom_icon_extension')) }} @else{{ asset('\/assets/linkstack/icons\/')}}coffee.svg @endif">Buy me a Coffee</a></div>
                  @elseif($button['button'] === "custom_website" and ($button['custom_css'] === "" or $button['custom_css'] === "NULL") or (theme('allow_custom_buttons') == "false" and $button['button'] === "custom_website"))
                  <div style="--delay: {{ $initial++ }}s" class="button-entrance"><a class="button button-custom_website button button-hover icon-hover" rel="noopener noreferrer nofollow" href="{{ $button['link'] }}" @if(theme('open_links_in_same_tab') != "true")target="_blank"@endif ><img alt="button-icon" class="icon hvr-icon" src="@if(file_exists(base_path("assets/favicon/icons/").localIcon($button['id']))){{url('assets/favicon/icons/'.localIcon($button['id']))}}@else{{getFavIcon($button['id'])}}@endif">{{ $button['title'] }}</a></div>
                  @elseif($button['button'] === "custom_website" and $button['custom_css'] != "")
@@ -151,7 +147,13 @@
     </div>
   </div>
 
-  @if(theme('enable_custom_code') == "true" and theme('enable_custom_body_end') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')@include($GLOBALS['themeName'] . '.extra.custom-body-end')@endif
+  @if(theme('enable_custom_code') == "true" and theme('enable_custom_body_end') == "true" and env('ALLOW_CUSTOM_CODE_IN_THEMES') == 'true')
+    @if(dbThemeExists($GLOBALS['themeName']))
+      {!! themeCustomCode($GLOBALS['themeName'], 'body-end') !!}
+    @else
+      @includeIf($GLOBALS['themeName'] . '.extra.custom-body-end')
+    @endif
+  @endif
 
 </body>
 </html>

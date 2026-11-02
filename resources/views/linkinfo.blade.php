@@ -14,8 +14,8 @@
       @endif
       
       <!-- Favicon -->
-      @if(file_exists(base_path("assets/linkstack/images/").findFile('favicon')))
-      <link rel="icon" type="image/png" href="{{ asset('assets/linkstack/images/'.findFile('favicon')) }}">
+      @if(siteImageExists('favicon'))
+      <link rel="icon" type="image/png" href="{{ siteImageUrl('favicon') }}">
       @else
       <link rel="icon" type="image/svg+xml" href="{{ asset('assets/linkstack/images/logo.svg') }}">
       @endif
@@ -59,12 +59,12 @@
                   
                   <!--Logo start-->
                   <div class="logo-main">
-                    @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
+                    @if(siteImageExists('avatar'))
                     <div class="logo-normal">
-                      <img class="img logo" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" style="width:auto;height:30px;">
+                      <img class="img logo" src="{{ siteImageUrl('avatar') }}" style="width:auto;height:30px;">
                   </div>
                   <div class="logo-mini">
-                    <img class="img logo" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" style="width:auto;height:30px;">
+                    <img class="img logo" src="{{ siteImageUrl('avatar') }}" style="width:auto;height:30px;">
                   </div>
                     @else
                     <div class="logo-normal">
@@ -97,8 +97,8 @@
                             <div class="p-2 mb-3">
                                 @if(hasAvatar($id))
                                     <img alt="avatar" class="rounded-avatar fadein" src="{{ avatarUrl($id) }}" height="128px" width="128px" style="object-fit: cover;">
-                                @elseif(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-                                    <img alt="avatar" class="fadein" src="{{ url("assets/linkstack/images/")."/".findFile('avatar') }}" height="128px" width="128px" style="object-fit: cover;">
+                                @elseif(siteImageExists('avatar'))
+                                    <img alt="avatar" class="fadein" src="{{ siteImageUrl('avatar')}}" height="128px" width="128px" style="object-fit: cover;">
                                 @else
                                     <img alt="avatar" class="fadein" src="{{ asset('assets/linkstack/images/logo.svg') }}" height="128px" style="width:auto;min-width:128px;object-fit: cover;">
                                 @endif

@@ -8,16 +8,15 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class PreventLocalFileWrites
 {
+    /**
+     * Routes whose whole purpose is to write to the server filesystem.
+     * They cannot work in a read-only container and stay disabled.
+     */
     private const BLOCKED_PATHS = [
         'backup',
         'clearIcon/*',
         'env-editor',
         'env-editor/*',
-        'import-data',
-        'admin/site/delavatar',
-        'admin/site/delfavicon',
-        'studio/background',
-        'studio/rem-background',
         'theme-updater',
         'update',
         'update/theme',
@@ -25,22 +24,25 @@ class PreventLocalFileWrites
 
     private const POST_ONLY_BLOCKED_PATHS = [
         'admin/advanced-config',
-        'admin/theme',
     ];
 
-    // Site logos, favicons, custom backgrounds and theme archives still need a
-    // writable disk, so uploads on these routes remain disabled.
-    private const UPLOAD_PATHS = [
-        'admin/site',
-        'studio/theme',
-    ];
-
-    // Profile pictures are stored in Postgres on Vercel. Only the "image"
-    // field is allowed here; any other uploaded file on these forms would
-    // still try to write to disk and must be rejected.
-    private const PROFILE_IMAGE_PATHS = [
-        'admin/edit-user/*',
-        'studio/page',
+    /**
+     * Upload fields that are handled by the database-backed stores on Vercel.
+     * Any other file upload still ends up in move()/unlink() against the
+     * read-only container filesystem and must be rejected.
+     *
+     *  - admin/site, studio/background: site logo, favicon and custom background
+     *  - studio/theme:                 theme ZIP unpacked into theme_files
+     *  - studio/page, admin/edit-user: profile picture
+     *  - import-data:                  JSON import (avatar stored in Postgres)
+     */
+    private const ALLOWED_UPLOADS = [
+        'admin/site' => ['image', 'icon'],
+        'studio/background' => ['image'],
+        'studio/theme' => ['zip'],
+        'studio/page' => ['image'],
+        'admin/edit-user/*' => ['image', 'background'],
+        'import-data' => ['import'],
     ];
 
     public function handle(Request $request, Closure $next)
@@ -57,29 +59,34 @@ class PreventLocalFileWrites
         );
 
         $uploadedKeys = $this->uploadedKeys($request);
-        $hasFiles = count($uploadedKeys) > 0;
+        $upload = false;
 
-        $upload = $hasFiles && collect(self::UPLOAD_PATHS)->contains(
-            fn ($pattern) => $request->is($pattern)
-        );
+        if ($uploadedKeys !== []) {
+            $allowedKeys = null;
+            foreach (self::ALLOWED_UPLOADS as $pattern => $keys) {
+                if ($request->is($pattern)) {
+                    $allowedKeys = $keys;
+                    break;
+                }
+            }
 
-        if ($hasFiles && collect(self::PROFILE_IMAGE_PATHS)->contains(
-            fn ($pattern) => $request->is($pattern)
-        )) {
-            foreach ($uploadedKeys as $key) {
-                if ($key !== 'image') {
-                    $upload = true;
+            if ($allowedKeys === null) {
+                $upload = true;
+            } else {
+                foreach ($uploadedKeys as $key) {
+                    if (!in_array($key, $allowedKeys, true)) {
+                        $upload = true;
+                        break;
+                    }
                 }
             }
         }
 
-        $viewDelete = $request->is('admin/edit-user/*')
-            && in_array($request->server('QUERY_STRING'), ['delete', 'deleteB'], true);
-
-        if ($blocked || $postBlocked || $upload || $viewDelete) {
+        if ($blocked || $postBlocked || $upload) {
             return response(
-                'This operation needs durable file storage and is disabled on the Vercel deployment. '
-                . 'Profile pictures, database-backed configuration, page, theme selection, and link editing remain available.',
+                'This operation needs a writable server filesystem and is disabled on the Vercel deployment. '
+                . 'Profile pictures, site logo and favicon, custom backgrounds, theme ZIP uploads, '
+                . 'database-backed configuration, page, theme selection, and link editing remain available.',
                 501
             )->header('Content-Type', 'text/plain; charset=UTF-8');
         }

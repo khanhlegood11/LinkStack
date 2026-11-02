@@ -692,6 +692,17 @@ class UserController extends Controller
         $customBackground = $request->file('image');
     
         if ($customBackground) {
+            if (env('VERCEL')) {
+                // The container filesystem is read-only: persist the bytes in
+                // Postgres and serve them through /db-asset/{key}.
+                saveDbAsset(backgroundKey($userId), $customBackground, [
+                    'image/jpeg', 'image/jpg', 'image/pjpeg',
+                    'image/png', 'image/webp', 'image/gif',
+                ], 2 * 1024 * 1024);
+
+                return redirect('/studio/theme');
+            }
+
             $directory = base_path('assets/img/background-img/');
             $files = scandir($directory);
             $pathinfo = "error.error";
@@ -727,6 +738,11 @@ class UserController extends Controller
     public function removeBackground()
     {
         $userId = Auth::user()->id;
+
+        if (env('VERCEL')) {
+            deleteDbAsset(backgroundKey($userId));
+            return back();
+        }
 
         // Delete the user's current background image if it exists
         while (findBackground($userId) !== "error.error") {
@@ -767,47 +783,50 @@ class UserController extends Controller
 
 
         if (!empty($zipfile) && Auth::user()->role == 'admin') {
-
-            $themesPath = base_path('themes');
-            $tmpPath = base_path() . '/themes/temp.zip';
-            $zipfile->move($themesPath, "temp.zip");
-
-            $zip = new ZipArchive;
-            $zip->open($tmpPath);
-            $zip->extractTo($themesPath);
-            $zip->close();
-            unlink($tmpPath);
-
-            // Removes version numbers from folder.
-
-            $regex = '/[0-9.-]/';
-            $files = scandir($themesPath);
-            $files = array_diff($files, array('.', '..'));
-
-            foreach ($files as $file) {
-
-                $basename = basename($file);
-                $filePath = $themesPath . '/' . $basename;
-
-                if (!is_dir($filePath)) {
-                        
-                    try {
-                        File::delete($filePath);
-                    } catch (exception $e) {}
-
+            if (env('VERCEL')) {
+                // The container filesystem is read-only. Unpack the archive
+                // into theme_files (one row per file) instead of extracting it
+                // into the themes/ directory.
+                $slug = importDbTheme($zipfile);
+                if ($slug !== false) {
+                    $message = 'Theme "' . $slug . '" uploaded successfully.';
+                } else {
+                    $message = 'Could not read the theme ZIP archive. Make sure it is a valid LinkStack theme.';
                 }
+            } else {
+                $themesPath = base_path('themes');
+                $tmpPath = base_path() . '/themes/temp.zip';
+                $zipfile->move($themesPath, "temp.zip");
 
-                if (preg_match($regex, $basename)) {
+                $zip = new ZipArchive;
+                $zip->open($tmpPath);
+                $zip->extractTo($themesPath);
+                $zip->close();
+                unlink($tmpPath);
 
-                    $newBasename = preg_replace($regex, '', $basename);
-                    $newPath = $themesPath . '/' . $newBasename;
-                    File::copyDirectory($filePath, $newPath);
-                    File::deleteDirectory($filePath);
+                // Removes version numbers from folder.
+                $regex = '/[0-9.-]/';
+                $files = scandir($themesPath);
+                $files = array_diff($files, array('.', '..'));
 
+                foreach ($files as $file) {
+                    $basename = basename($file);
+                    $filePath = $themesPath . '/' . $basename;
+
+                    if (!is_dir($filePath)) {
+                        try {
+                            File::delete($filePath);
+                        } catch (exception $e) {}
+                    }
+
+                    if (preg_match($regex, $basename)) {
+                        $newBasename = preg_replace($regex, '', $basename);
+                        $newPath = $themesPath . '/' . $newBasename;
+                        File::copyDirectory($filePath, $newPath);
+                        File::deleteDirectory($filePath);
+                    }
                 }
-
             }
-
         }
 
 
