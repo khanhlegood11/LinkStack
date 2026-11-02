@@ -423,14 +423,32 @@ if (!function_exists('dbAssetMeta')) {
      */
     function dbAssetMeta($key): ?object
     {
+        // Per-request cache: views ask for the site logo/favicon several times.
+        $key = (string) $key;
+        if (!isset($GLOBALS['linkstack_db_asset_meta'])) {
+            $GLOBALS['linkstack_db_asset_meta'] = [];
+        }
+        if (array_key_exists($key, $GLOBALS['linkstack_db_asset_meta'])) {
+            return $GLOBALS['linkstack_db_asset_meta'][$key];
+        }
+
         try {
-            return \Illuminate\Support\Facades\DB::table('site_assets')
+            $row = \Illuminate\Support\Facades\DB::table('site_assets')
                 ->select('key', 'mime', 'extension', 'updated_at')
-                ->where('key', (string) $key)
+                ->where('key', $key)
                 ->first();
         } catch (\Throwable $e) {
-            return null;
+            $row = null;
         }
+
+        return $GLOBALS['linkstack_db_asset_meta'][$key] = $row;
+    }
+}
+
+if (!function_exists('dbAssetInvalidate')) {
+    function dbAssetInvalidate($key): void
+    {
+        unset($GLOBALS['linkstack_db_asset_meta'][(string) $key]);
     }
 }
 
@@ -503,6 +521,7 @@ if (!function_exists('saveDbAssetBinary')) {
                 );
             }
 
+            dbAssetInvalidate($key);
             return true;
         } catch (\Throwable $e) {
             return false;
@@ -565,6 +584,7 @@ if (!function_exists('deleteDbAsset')) {
         try {
             \Illuminate\Support\Facades\DB::table('site_assets')
                 ->where('key', (string) $key)->delete();
+            dbAssetInvalidate($key);
             return true;
         } catch (\Throwable $e) {
             return false;
@@ -706,15 +726,44 @@ if (!function_exists('themeFileMime')) {
 if (!function_exists('dbThemeFileMeta')) {
     function dbThemeFileMeta($slug, $path): ?object
     {
+        // Per-request cache: a themed page resolves several CSS/icon URLs.
+        $cacheKey = (string) $slug . "\0" . (string) $path;
+        if (!isset($GLOBALS['linkstack_theme_meta'])) {
+            $GLOBALS['linkstack_theme_meta'] = [];
+        }
+        if (array_key_exists($cacheKey, $GLOBALS['linkstack_theme_meta'])) {
+            return $GLOBALS['linkstack_theme_meta'][$cacheKey];
+        }
+
         try {
-            return \Illuminate\Support\Facades\DB::table('theme_files')
+            $row = \Illuminate\Support\Facades\DB::table('theme_files')
                 ->select('theme', 'path', 'mime', 'size', 'updated_at')
                 ->where('theme', (string) $slug)
                 ->where('path', (string) $path)
                 ->first();
         } catch (\Throwable $e) {
-            return null;
+            $row = null;
         }
+
+        return $GLOBALS['linkstack_theme_meta'][$cacheKey] = $row;
+    }
+}
+
+if (!function_exists('dbThemeInvalidate')) {
+    function dbThemeInvalidate($slug = null): void
+    {
+        if ($slug === null) {
+            $GLOBALS['linkstack_theme_meta'] = [];
+            $GLOBALS['linkstack_theme_config'] = [];
+            return;
+        }
+
+        foreach (array_keys($GLOBALS['linkstack_theme_meta'] ?? []) as $cacheKey) {
+            if (strpos($cacheKey, $slug . "\0") === 0) {
+                unset($GLOBALS['linkstack_theme_meta'][$cacheKey]);
+            }
+        }
+        unset($GLOBALS['linkstack_theme_config'][$slug]);
     }
 }
 
@@ -825,19 +874,22 @@ if (!function_exists('themeConfigValue')) {
             return null;
         }
 
-        $json = themeFileContents($slug, 'config.json');
-        if ($json !== null) {
-            $config = json_decode($json, true);
-            return is_array($config) ? ($config[$key] ?? null) : null;
+        if (!isset($GLOBALS['linkstack_theme_config'])) {
+            $GLOBALS['linkstack_theme_config'] = [];
+        }
+        if (!array_key_exists($slug, $GLOBALS['linkstack_theme_config'])) {
+            $json = themeFileContents($slug, 'config.json');
+            if ($json !== null) {
+                $config = json_decode($json, true);
+                $GLOBALS['linkstack_theme_config'][$slug] = is_array($config) ? $config : [];
+            } else {
+                $file = base_path('themes/' . $slug . '/config.php');
+                $config = is_file($file) ? include $file : [];
+                $GLOBALS['linkstack_theme_config'][$slug] = is_array($config) ? $config : [];
+            }
         }
 
-        $file = base_path('themes/' . $slug . '/config.php');
-        if (is_file($file)) {
-            $config = include $file;
-            return is_array($config) ? ($config[$key] ?? null) : null;
-        }
-
-        return null;
+        return $GLOBALS['linkstack_theme_config'][$slug][$key] ?? null;
     }
 }
 
@@ -1090,6 +1142,7 @@ if (!function_exists('importDbTheme')) {
             return false;
         }
 
+        dbThemeInvalidate($slug);
         return $slug;
     }
 }
@@ -1105,6 +1158,7 @@ if (!function_exists('deleteDbTheme')) {
         try {
             \Illuminate\Support\Facades\DB::table('theme_files')
                 ->where('theme', $slug)->delete();
+            dbThemeInvalidate($slug);
             return true;
         } catch (\Throwable $e) {
             return false;
