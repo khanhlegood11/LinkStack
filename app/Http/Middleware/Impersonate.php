@@ -47,8 +47,8 @@ class Impersonate
                 if ($storageToken === $rememberToken) {
                     if (hasAvatar($impersonateUserId)) {
                         $avatarUrl = avatarUrl($impersonateUserId);
-                    } elseif (file_exists(base_path("assets/linkstack/images/") . findFile('avatar'))) {
-                        $avatarUrl = url("assets/linkstack/images/") . "/" . findFile('avatar');
+                    } elseif (siteImageExists('avatar')) {
+                        $avatarUrl = siteImageUrl('avatar');
                     } else {
                         $avatarUrl = asset('assets/linkstack/images/logo.svg');
                     }

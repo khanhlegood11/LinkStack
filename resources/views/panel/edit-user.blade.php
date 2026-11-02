@@ -55,51 +55,20 @@
                             </div>
                             </div>
                             <div class="form-group col-lg-8">
-                                @if(!file_exists(base_path('assets/img/background-img/'.findBackground($user->id))))<p><i>{{__('messages.No image selected')}}</i></p>@endif
-                                <img style="width:95%;max-width:400px;argin-left:1rem!important;border-radius:5px;" src="@if(file_exists(base_path('assets/img/background-img/'.findBackground($user->id)))){{url('assets/img/background-img/'.findBackground($user->id))}}@else{{url('/assets/linkstack/images/themes/no-preview.png')}}@endif">
-                                @if(file_exists(base_path('assets/img/background-img/'.findBackground($user->id))))<br><a title="Remove icon" class="hvr-grow p-1 text-danger" style="padding-left:5px;" href="?deleteB"><i class="bi bi-trash-fill"></i> {{__('messages.Delete')}}</a>@endif
-                                @if($_SERVER['QUERY_STRING'] === 'deleteB' and File::exists(base_path('assets/img/background-img/'.findBackground($user->id))))@php File::delete(base_path('assets/img/background-img/'.findBackground($user->id))); header("Location: ".url()->current()); die(); @endphp @endif
+                                @if(!hasBackground($user->id))<p><i>{{__('messages.No image selected')}}</i></p>@endif
+                                <img style="width:95%;max-width:400px;argin-left:1rem!important;border-radius:5px;" src="{{ backgroundUrl($user->id) }}">
+                                @if(hasBackground($user->id))<br><a title="Remove icon" class="hvr-grow p-1 text-danger" style="padding-left:5px;" href="{{ route('delUserBackground', ['id' => $user->id]) }}"><i class="bi bi-trash-fill"></i> {{__('messages.Delete')}}</a>@endif
                                 <br>
                             </div><br>
 
                             <label>{{__('messages.Select theme')}}</label>
                               <div class="form-group col-lg-8">
                                   <select id="theme-select" style="margin-bottom: 40px;" class="form-control" name="theme" data-base-url="{{ url('') }}/@<?= Auth::user()->littlelink_name ?>">
-                                      <?php
-                                          if ($handle = opendir('themes')) {
-                                              while (false !== ($entry = readdir($handle))) {
-                                                  if ($entry != "." && $entry != "..") {
-                                                      if(file_exists(base_path('themes') . '/' . $entry . '/readme.md')){
-                                                          $text = file_get_contents(base_path('themes') . '/' . $entry . '/readme.md');
-                                                          $pattern = '/Theme Name:.*/';
-                                                          preg_match($pattern, $text, $matches, PREG_OFFSET_CAPTURE);
-                                                          if(sizeof($matches) > 0) {
-                                                              $themeName = substr($matches[0][0],12);
-                                                          }
-                                                      }
-                                                      if($user->theme != $entry and isset($themeName)){
-                                                          echo '<option value="'.$entry.'" data-image="'.url('themes/'.$entry.'/screenshot.png').'">'.$themeName.'</option>';
-                                                      }
-                                                  }
-                                              }
-                                          }
-                              
-                                          if($user->theme != "default" and $user->theme != ""){
-                                              if(file_exists(base_path('themes') . '/' . $user->theme . '/readme.md')){
-                                                  $text = file_get_contents(base_path('themes') . '/' . $user->theme . '/readme.md');
-                                                  $pattern = '/Theme Name:.*/';
-                                                  preg_match($pattern, $text, $matches, PREG_OFFSET_CAPTURE);
-                                                  $themeName = substr($matches[0][0],12);
-                                              }
-                                              echo '<option value="'.$user->theme.'" data-image="'.url('themes/'.$user->theme.'/screenshot.png').'" selected>'.$themeName.'</option>';
-                                          }
-                              
-                                          echo '<option value="default" data-image="'.url('themes/default/screenshot.png').'"';
-                                          if($user->theme == "default" or $user->theme == ""){
-                                              echo ' selected';
-                                          }
-                                          echo '>Default</option>';
-                                      ?>
+                                      @php $themeOptions = availableThemes(); $selectedTheme = $user->theme ?: 'default'; @endphp
+                                      @foreach($themeOptions as $themeOption)
+                                          <option value="{{ $themeOption['slug'] }}" data-image="{{ $themeOption['preview'] }}" @if($selectedTheme === $themeOption['slug']) selected @endif>{{ $themeOption['name'] }}</option>
+                                      @endforeach
+                                      <option value="default" data-image="{{ url('/assets/linkstack/images/themes/default.png') }}" @if($selectedTheme === 'default') selected @endif>Default</option>
                                   </select>
                               </div>
                             

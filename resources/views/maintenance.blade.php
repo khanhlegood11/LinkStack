@@ -25,8 +25,8 @@
   @include('layouts.fonts') 
   <link rel="stylesheet" href="{{ asset('assets/linkstack/css/normalize.css') }}">
   <link rel="stylesheet" href="{{ asset('assets/linkstack/css/animate.css') }}">
-  @if(file_exists(base_path("assets/linkstack/images/").findFile('favicon')))
-  <link rel="icon" type="image/png" href="{{ asset('assets/linkstack/images/'.findFile('favicon')) }}">
+  @if(siteImageExists('favicon'))
+  <link rel="icon" type="image/png" href="{{ siteImageUrl('favicon') }}">
   @else
   <link rel="icon" type="image/svg+xml" href="{{ asset('assets/linkstack/images/logo.svg') }}">
   @endif
@@ -81,8 +81,8 @@ body {
 <div class="containerr" style="">
       <div class="column">
         <!-- Your Image Here -->
-        @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-        <img alt="avatar" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" width="auto" height="200px">
+        @if(siteImageExists('avatar'))
+        <img alt="avatar" src="{{ siteImageUrl('avatar') }}" width="auto" height="200px">
         @else
         <div class="logo-container">
            <img src="{{ asset('assets/linkstack/images/logo.svg') }}" alt="Logo" style="width:200px; height:200px;">

@@ -20,10 +20,9 @@
                       <div class="form-group col-lg-8">
                       <h3>{{__('messages.Delete theme')}}</h3>
                         <select class="form-control" name="deltheme">
-                          <?php if ($handle = opendir('themes')) {
-                           while (false !== ($entry = readdir($handle))) {
-                              if ($entry != "." && $entry != "..") {
-                                  echo '<option>'; print_r($entry); echo '</option>'; }}} ?>
+                          @foreach(availableThemes() as $themeOption)
+                            <option value="{{ $themeOption['slug'] }}">{{ $themeOption['slug'] }}</option>
+                          @endforeach
                         </select>
               
                       </div>

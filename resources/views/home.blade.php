@@ -21,8 +21,8 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="{{env('APP_NAME')}}">
     <meta property="og:description" content='@if($message->home_message == "default"){!!strip_tags(__('messages.HOME.MESSAGE'))!!}@else{!!$message->home_message!!}@endif'>
-    @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-    <meta property="og:image" content="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}">
+    @if(siteImageExists('avatar'))
+    <meta property="og:image" content="{{ siteImageUrl('avatar') }}">
     @else
     <meta property="og:image" content="{{ asset('assets/linkstack/images/logo.svg') }}">
     @endif
@@ -33,8 +33,8 @@
     <meta property="twitter:url" content="{{ url('') }}">
     <meta name="twitter:title" content="{{env('APP_NAME')}}">
     <meta name="twitter:description" content='@if($message->home_message == "default"){!!strip_tags(__('messages.HOME.MESSAGE'))!!}@else{!!$message->home_message!!}@endif'>
-    @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-    <meta name="twitter:image" content="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}">
+    @if(siteImageExists('avatar'))
+    <meta name="twitter:image" content="{{ siteImageUrl('avatar') }}">
     @else
     <meta name="twitter:image" content="{{ asset('assets/linkstack/images/logo.svg') }}">
     @endif
@@ -42,8 +42,8 @@
 <!--#### END Meta Tags social media preview images  ####-->
 
       <!-- Favicon -->
-      @if(file_exists(base_path("assets/linkstack/images/").findFile('favicon')))
-      <link rel="icon" type="image/png" href="{{ asset('assets/linkstack/images/'.findFile('favicon')) }}">
+      @if(siteImageExists('favicon'))
+      <link rel="icon" type="image/png" href="{{ siteImageUrl('favicon') }}">
       @else
       <link rel="icon" type="image/svg+xml" href="{{ asset('assets/linkstack/images/logo.svg') }}">
       @endif
@@ -93,12 +93,12 @@
                 
                 <!--Logo start-->
                 <div class="logo-main">
-                  @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
+                  @if(siteImageExists('avatar'))
                   <div class="logo-normal">
-                    <img class="img logo" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" style="width:auto;height:30px;">
+                    <img class="img logo" src="{{ siteImageUrl('avatar') }}" style="width:auto;height:30px;">
                 </div>
                 <div class="logo-mini">
-                  <img class="img logo" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" style="width:auto;height:30px;">
+                  <img class="img logo" src="{{ siteImageUrl('avatar') }}" style="width:auto;height:30px;">
                 </div>
                   @else
                   <div class="logo-normal">
@@ -168,8 +168,8 @@
             <div class="card card-transparent auth-card shadow-none d-flex mb-0">
               <div class="card-body justify-content-center text-center">
     
-                @if(file_exists(base_path("assets/linkstack/images/").findFile('avatar')))
-                <img alt="avatar" src="{{ asset('assets/linkstack/images/'.findFile('avatar')) }}" width="auto" height="128px">
+                @if(siteImageExists('avatar'))
+                <img alt="avatar" src="{{ siteImageUrl('avatar') }}" width="auto" height="128px">
                 @else
                 <div class="logo-container fadein">
                   <img src="{{ asset('assets/linkstack/images/logo-animated.svg') }}" alt="Logo" style="width:150px; height:150px;">

@@ -377,6 +377,13 @@ class AdminController extends Controller
       }
     }
     if (!empty($customBackground)) {
+      if (env('VERCEL')) {
+        // Custom backgrounds live in Postgres on Vercel (read-only filesystem).
+        saveDbAsset(backgroundKey($id), $customBackground, [
+          'image/jpeg', 'image/jpg', 'image/pjpeg',
+          'image/png', 'image/webp', 'image/gif',
+        ], 2 * 1024 * 1024);
+      } else {
       $directory = base_path("assets/img/background-img/");
       $files = scandir($directory);
       $pathinfo = "error.error";
@@ -393,6 +400,7 @@ class AdminController extends Controller
         base_path("assets/img/background-img/"),
         $id . "_" . time() . "." . $request->file("background")->extension(),
       );
+      }
     }
 
     return redirect("admin/users/all");
@@ -445,35 +453,48 @@ class AdminController extends Controller
     Page::first()->update(["home_message" => $message]);
 
     if (!empty($logo)) {
-      // Delete existing image
-      $path = findFile("avatar");
-      $path = base_path("/assets/linkstack/images/" . $path);
+      if (env('VERCEL')) {
+        saveDbAsset(siteImageKey('avatar'), $logo, [
+          'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png',
+          'image/webp', 'image/gif', 'image/svg+xml',
+        ]);
+      } else {
+        // Delete existing image
+        $path = findFile("avatar");
+        $path = base_path("/assets/linkstack/images/" . $path);
 
-      // Delete existing image
-      if (File::exists($path)) {
-        File::delete($path);
+        if (File::exists($path)) {
+          File::delete($path);
+        }
+
+        $logo->move(
+          base_path("/assets/linkstack/images/"),
+          "avatar" . "_" . time() . "." . $request->file("image")->extension(),
+        );
       }
-
-      $logo->move(
-        base_path("/assets/linkstack/images/"),
-        "avatar" . "_" . time() . "." . $request->file("image")->extension(),
-      );
     }
 
     if (!empty($icon)) {
-      // Delete existing image
-      $path = findFile("favicon");
-      $path = base_path("/assets/linkstack/images/" . $path);
+      if (env('VERCEL')) {
+        saveDbAsset(siteImageKey('favicon'), $icon, [
+          'image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png',
+          'image/webp', 'image/gif', 'image/svg+xml',
+          'image/x-icon', 'image/vnd.microsoft.icon',
+        ]);
+      } else {
+        // Delete existing image
+        $path = findFile("favicon");
+        $path = base_path("/assets/linkstack/images/" . $path);
 
-      // Delete existing image
-      if (File::exists($path)) {
-        File::delete($path);
+        if (File::exists($path)) {
+          File::delete($path);
+        }
+
+        $icon->move(
+          base_path("/assets/linkstack/images/"),
+          "favicon" . "_" . time() . "." . $request->file("icon")->extension(),
+        );
       }
-
-      $icon->move(
-        base_path("/assets/linkstack/images/"),
-        "favicon" . "_" . time() . "." . $request->file("icon")->extension(),
-      );
     }
     return back();
   }
@@ -493,9 +514,14 @@ class AdminController extends Controller
     return back();
   }
 
-  //Delete avatar
+  //Delete the site logo (database-backed on Vercel)
   public function delAvatar()
   {
+    if (env('VERCEL')) {
+      deleteDbAsset(siteImageKey('avatar'));
+      return back();
+    }
+
     $path = findFile("avatar");
     $path = base_path("/assets/linkstack/images/" . $path);
 
@@ -507,9 +533,14 @@ class AdminController extends Controller
     return back();
   }
 
-  //Delete favicon
+  //Delete the favicon (database-backed on Vercel)
   public function delFavicon()
   {
+    if (env('VERCEL')) {
+      deleteDbAsset(siteImageKey('favicon'));
+      return back();
+    }
+
     // Delete existing image
     $path = findFile("favicon");
     $path = base_path("/assets/linkstack/images/" . $path);
@@ -517,6 +548,26 @@ class AdminController extends Controller
     // Delete existing image
     if (File::exists($path)) {
       File::delete($path);
+    }
+
+    return back();
+  }
+
+  //Delete a user's custom background (database-backed on Vercel)
+  public function delUserBackground($id)
+  {
+    if (env('VERCEL')) {
+      deleteDbAsset(backgroundKey($id));
+      return back();
+    }
+
+    while (findBackground($id) !== "error.error") {
+      $background = "assets/img/background-img/" . findBackground($id);
+      if (File::exists(base_path($background))) {
+        File::delete(base_path($background));
+      } else {
+        break;
+      }
     }
 
     return back();
@@ -622,6 +673,17 @@ class AdminController extends Controller
       echo 'window.location.href = "../studio/theme";';
       echo "</script>";
     } else {
+      if (env('VERCEL')) {
+        // Uploaded themes live in theme_files; built-in themes are part of the
+        // read-only container image and cannot be deleted at runtime.
+        $slug = safeThemeSlug($del);
+        if ($slug !== '' && dbThemeExists($slug)) {
+          deleteDbTheme($slug);
+        }
+
+        return Redirect("/admin/theme");
+      }
+
       $folderName = base_path() . "/themes/" . $del;
 
       function removeFolder($folderName)

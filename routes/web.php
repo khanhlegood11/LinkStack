@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\DbAssetController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Auth\SocialLoginController;
 use App\Http\Controllers\LinkTypeViewController;
@@ -42,6 +43,18 @@ Route::get('/health', function () {
 Route::get('/avatar/{id}', [UserController::class, 'serveAvatar'])
     ->where('id', '[0-9]+')
     ->name('serveAvatar');
+
+// Serve site logo / favicon / custom backgrounds and uploaded theme files
+// that are persisted in Postgres on read-only deployments.
+Route::get('/db-asset/{key}', [DbAssetController::class, 'siteAsset'])
+    ->where('key', '[A-Za-z0-9_-]+')
+    ->name('dbAsset');
+
+Route::get('/theme-file/{slug}/{path}', [DbAssetController::class, 'themeFile'])
+    ->where('slug', '[A-Za-z0-9_-]+')
+    ->where('path', '.*')
+    ->name('themeFile');
+
 
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
@@ -173,6 +186,7 @@ Route::group([
     Route::get('/admin/edit-user/{id}', [AdminController::class, 'showUser'])->name('showUser');
     Route::post('/admin/edit-user/{id}', [AdminController::class, 'editUser'])->name('editUser');
     Route::get('/admin/edit-user/{id}/delavatar', [AdminController::class, 'delUserAvatar'])->name('delUserAvatar');
+    Route::get('/admin/edit-user/{id}/delbackground', [AdminController::class, 'delUserBackground'])->name('delUserBackground');
     Route::get('/admin/new-user', [AdminController::class, 'createNewUser'])->name('createNewUser')->middleware('max.users');
     Route::get('/admin/delete-user/{id}', [AdminController::class, 'deleteUser'])->name('deleteUser');
     Route::post('/admin/delete-table-user/{id}', [AdminController::class, 'deleteTableUser'])->name('deleteTableUser');
