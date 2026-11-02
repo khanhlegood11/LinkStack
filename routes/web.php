@@ -38,27 +38,6 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
-// TEMPORARY verification route (removed after the fix is confirmed).
-Route::get('/__verify-links', function () {
-    if (request('token') !== 'ls-verify-8f3b21c9') {
-        abort(404);
-    }
-
-    Auth::loginUsingId((int) request('user', 1));
-    $started = microtime(true);
-
-    try {
-        $html = app(UserController::class)->showLinks()->render();
-
-        return response('OK bytes=' . strlen($html) . ' seconds=' . round(microtime(true) - $started, 2), 200)
-            ->header('Content-Type', 'text/plain; charset=UTF-8');
-    } catch (\Throwable $e) {
-        return response(get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine(), 200)
-            ->header('Content-Type', 'text/plain; charset=UTF-8');
-    }
-})->middleware('web');
-
-
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
 
