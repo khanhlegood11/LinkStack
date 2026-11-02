@@ -24,19 +24,6 @@ class DbAssetController extends Controller
         $row = dbAssetData($key);
         $binary = $row !== null ? base64_decode((string) $row->data, true) : false;
 
-        // Temporary text probe (removed after verification); fetch_page cannot
-        // parse binary responses.
-        if ($request->query('__probe') === '1') {
-            return response(
-                'OK key=' . $key
-                . ' row=' . ($row !== null ? 'yes' : 'no')
-                . ' mime=' . ($row->mime ?? '-')
-                . ' decoded=' . ($binary !== false ? 'yes' : 'no')
-                . ' bytes=' . ($binary !== false ? strlen($binary) : 0),
-                200
-            )->header('Content-Type', 'text/plain');
-        }
-
         if ($binary === false || $binary === '') {
             abort(404);
         }
@@ -61,18 +48,6 @@ class DbAssetController extends Controller
 
         $row = dbThemeFileData($slug, $path);
         $binary = $row !== null ? base64_decode((string) $row->data, true) : false;
-
-        // Temporary text probe (removed after verification).
-        if ($request->query('__probe') === '1') {
-            return response(
-                'OK theme=' . $slug . ' path=' . $path
-                . ' row=' . ($row !== null ? 'yes' : 'no')
-                . ' mime=' . ($row->mime ?? '-')
-                . ' decoded=' . ($binary !== false ? 'yes' : 'no')
-                . ' bytes=' . ($binary !== false ? strlen($binary) : 0),
-                200
-            )->header('Content-Type', 'text/plain');
-        }
 
         if ($binary === false || $binary === '') {
             abort(404);
