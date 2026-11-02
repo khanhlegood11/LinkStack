@@ -637,15 +637,20 @@ class UserController extends Controller
         ]);
     
         if ($request->hasFile('image')) {
+            if (env('VERCEL')) {
+                // The container filesystem is read-only: persist the picture in
+                // Postgres and serve it through /avatar/{id}.
+                saveDbAvatar($userId, $profilePhoto);
+            } else {
+                // Delete the user's current avatar if it exists
+                while (findAvatar($userId) !== "error.error") {
+                    $avatarName = findAvatar($userId);
+                    unlink(base_path($avatarName));
+                }
 
-            // Delete the user's current avatar if it exists
-            while (findAvatar($userId) !== "error.error") {
-                $avatarName = findAvatar($userId);
-                unlink(base_path($avatarName));
+                $fileName = $userId . '_' . time() . "." . $profilePhoto->extension();
+                $profilePhoto->move(base_path('assets/img'), $fileName);
             }
-            
-            $fileName = $userId . '_' . time() . "." . $profilePhoto->extension();
-            $profilePhoto->move(base_path('assets/img'), $fileName);
         }
     
         if ($checkmark == "on") {
@@ -891,13 +896,46 @@ class UserController extends Controller
     {
         $userId = Auth::user()->id;
 
-        // Delete the user's current avatar if it exists
-        while (findAvatar($userId) !== "error.error") {
-            $avatarName = findAvatar($userId);
-            unlink(base_path($avatarName));
+        if (env('VERCEL')) {
+            deleteDbAvatar($userId);
+        } else {
+            // Delete the user's current avatar if it exists
+            while (findAvatar($userId) !== "error.error") {
+                $avatarName = findAvatar($userId);
+                unlink(base_path($avatarName));
+            }
         }
 
         return back();
+    }
+
+    /**
+     * Serve a profile picture. On Vercel it comes from Postgres; local
+     * installations may still have a legacy file in assets/img.
+     */
+    public function serveAvatar($id)
+    {
+        $id = (int) $id;
+        $row = dbAvatarData($id);
+
+        if ($row !== null) {
+            $binary = base64_decode((string) $row->data, true);
+            if ($binary === false || $binary === '') {
+                abort(404);
+            }
+
+            return response($binary, 200)
+                ->header('Content-Type', (string) $row->mime)
+                ->header('Content-Length', (string) strlen($binary))
+                ->header('Cache-Control', 'public, max-age=60');
+        }
+
+        $legacy = findAvatar($id);
+        if ($legacy !== 'error.error' && is_file(base_path($legacy))) {
+            return response()->file(base_path($legacy));
+        }
+
+        abort(404);
     }
 
     //Export user links
@@ -941,13 +979,14 @@ class UserController extends Controller
         $userData = $user->toArray();
         $userData['links'] = $links->toArray();
 
-        if (file_exists(base_path(findAvatar($userId)))){
+        $avatarRow = dbAvatarData($userId);
+        if ($avatarRow !== null) {
+            $userData['image_data'] = (string) $avatarRow->data;
+            $userData['image_extension'] = (string) $avatarRow->extension;
+        } elseif (hasAvatar($userId)) {
             $imagePath = base_path(findAvatar($userId));
-            $imageData = base64_encode(file_get_contents($imagePath));
-            $userData['image_data'] = $imageData;
-    
-            $imageExtension = pathinfo($imagePath, PATHINFO_EXTENSION);
-            $userData['image_extension'] = $imageExtension;
+            $userData['image_data'] = base64_encode(file_get_contents($imagePath));
+            $userData['image_extension'] = pathinfo($imagePath, PATHINFO_EXTENSION);
         }
     
         $domain = $_SERVER['HTTP_HOST'];
@@ -996,18 +1035,36 @@ class UserController extends Controller
                 // Decode the image data from Base64
                 $imageData = base64_decode($userData['image_data']);
 
-                // Delete the user's current avatar if it exists
-                while (findAvatar(Auth::id()) !== "error.error") {
-                    $avatarName = findAvatar(Auth::id());
-                    unlink(base_path($avatarName));
+                if (env('VERCEL')) {
+                    // Reuse the database-backed avatar store instead of writing
+                    // into the read-only assets/img directory.
+                    $tmp = tempnam(sys_get_temp_dir(), 'avatar');
+                    if ($tmp !== false) {
+                        file_put_contents($tmp, $imageData);
+                        $uploaded = new \Illuminate\Http\UploadedFile(
+                            $tmp,
+                            $user->id . '.' . $userExtension,
+                            null,
+                            null,
+                            true
+                        );
+                        saveDbAvatar($user->id, $uploaded);
+                        @unlink($tmp);
+                    }
+                } else {
+                    // Delete the user's current avatar if it exists
+                    while (findAvatar(Auth::id()) !== "error.error") {
+                        $avatarName = findAvatar(Auth::id());
+                        unlink(base_path($avatarName));
+                    }
+
+                    // Save the image to the correct path with the correct file name and extension
+                    $filename = $user->id . '.' . $userExtension;
+                    file_put_contents(base_path('assets/img/' . $filename), $imageData);
+
+                    // Update the user's image field with the correct file name
+                    $user->image = $filename;
                 }
-                
-                // Save the image to the correct path with the correct file name and extension
-                $filename = $user->id . '.' . $userExtension;
-                file_put_contents(base_path('assets/img/' . $filename), $imageData);
-                
-                // Update the user's image field with the correct file name
-                $user->image = $filename;
                 }
             }
 

@@ -2,7 +2,7 @@ FROM dunglas/frankenphp:1-php8.2-bookworm AS base
 
 RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
     && install-php-extensions bcmath exif gd intl mbstring pdo_pgsql zip \
-    && printf 'max_execution_time=120\n' > "$PHP_INI_DIR/conf.d/zz-linkstack.ini"
+    && printf 'max_execution_time=120\nupload_max_filesize=8M\npost_max_size=16M\n' > "$PHP_INI_DIR/conf.d/zz-linkstack.ini"
 
 WORKDIR /app
 
