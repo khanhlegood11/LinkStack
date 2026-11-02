@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class RegisteredUserController extends Controller
 {
@@ -23,14 +24,34 @@ class RegisteredUserController extends Controller
 
     public function validateHandle(Request $request)
     {
+        // The studio page validates the handle that is already saved on the
+        // current profile. Treat that value as valid even though the users
+        // table obviously already contains it for this very account.
+        $currentHandle = Auth::check() ? (string) Auth::user()->littlelink_name : null;
+        $submitted = trim((string) $request->input('littlelink_name', ''));
+
+        if ($submitted !== '' && $currentHandle !== null && strcasecmp($submitted, $currentHandle) === 0) {
+            return response()->json(['valid' => true]);
+        }
+
+        $uniqueRule = Auth::check()
+            ? Rule::unique('users', 'littlelink_name')->ignore(Auth::id())
+            : 'unique:users,littlelink_name';
+
         $validator = Validator::make($request->all(), [
-            'littlelink_name' => 'required|string|max:50|unique:users|regex:/^[\p{L}0-9-_]+$/u',
+            'littlelink_name' => [
+                'required',
+                'string',
+                'max:50',
+                $uniqueRule,
+                'regex:/^[\p{L}0-9-_]+$/u',
+            ],
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json(['valid' => false]);
         }
-    
+
         return response()->json(['valid' => true]);
     }
 
