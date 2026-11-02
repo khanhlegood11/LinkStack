@@ -72,7 +72,7 @@ Route::get('/@', function () {
 
 //Show diagnose page
 Route::get('/panel/diagnose', function () {
-        return view('panel/diagnose', []);
+        return view('panel.diagnose', []);
 });
 
 //Public route
@@ -104,14 +104,13 @@ Route::group([
     'middleware' => env('REGISTER_AUTH'),
 ], function () {
 if(env('FORCE_ROUTE_HTTPS') == 'true'){URL::forceScheme('https');}
-if(isset($_COOKIE['LinkCount'])){if($_COOKIE['LinkCount'] == '20'){$LinkPage = 'showLinks20';}elseif($_COOKIE['LinkCount'] == '30'){$LinkPage = 'showLinks30';}elseif($_COOKIE['LinkCount'] == 'all'){$LinkPage = 'showLinksAll';} else {$LinkPage = 'showLinks';}} else {$LinkPage = 'showLinks';} //Shows correct link number
 Route::get('/dashboard', [AdminController::class, 'index'])->name('panelIndex');
 Route::get('/studio/index', function(){return redirect(url('dashboard'));});
 Route::get('/studio/add-link', [UserController::class, 'AddUpdateLink'])->name('showButtons');
 Route::post('/studio/edit-link', [UserController::class, 'saveLink'])->name('addLink');
 Route::get('/studio/edit-link/{id}', [UserController::class, 'AddUpdateLink'])->name('showLink')->middleware('link-id');
 Route::post('/studio/sort-link', [UserController::class, 'sortLinks'])->name('sortLinks');
-Route::get('/studio/links', [UserController::class, $LinkPage])->name($LinkPage);
+Route::get('/studio/links', [UserController::class, 'showLinks'])->name('showLinks');
 Route::get('/studio/theme', [UserController::class, 'showTheme'])->name('showTheme');
 Route::post('/studio/theme', [UserController::class, 'editTheme'])->name('editTheme');
 Route::get('/deleteLink/{id}', [UserController::class, 'deleteLink'])->name('deleteLink')->middleware('link-id');
