@@ -918,18 +918,6 @@ class UserController extends Controller
         $id = (int) $id;
         $row = dbAvatarData($id);
 
-        // Temporary text probe used to verify the HTTP route while the image
-        // response itself cannot be parsed by our fetch tool. Removed later.
-        if (request()->query('__probe') === '1') {
-            $decoded = $row !== null ? base64_decode((string) $row->data, true) : false;
-            return response('OK id=' . $id
-                . ' row=' . ($row !== null ? 'yes' : 'no')
-                . ' mime=' . ($row->mime ?? '-')
-                . ' decoded=' . ($decoded !== false ? 'yes' : 'no')
-                . ' bytes=' . ($decoded !== false ? strlen($decoded) : 0), 200)
-                ->header('Content-Type', 'text/plain');
-        }
-
         if ($row !== null) {
             $binary = base64_decode((string) $row->data, true);
             if ($binary === false || $binary === '') {
