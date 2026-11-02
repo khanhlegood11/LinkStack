@@ -188,6 +188,51 @@ Route::get('/__verify-assets', function () {
         return response(implode(' ', $out), 200)->header('Content-Type', 'text/plain');
     }
 
+    if ($mode === 'public') {
+        \Illuminate\Support\Facades\Auth::loginUsingId(1);
+        $slug = (string) request()->query('theme', '');
+        if ($slug !== '') {
+            \Illuminate\Support\Facades\DB::table('users')->where('id', 1)->update(['theme' => $slug]);
+        }
+        try {
+            $request = \Illuminate\Http\Request::create('/@admin', 'GET', ['littlelink' => 'admin']);
+            $html = app(\App\Http\Controllers\UserController::class)->littlelink($request)->render();
+            return response('OK bytes=' . strlen($html)
+                . ' themefile=' . (strpos($html, '/theme-file/') !== false ? 'yes' : 'no')
+                . ' bg=' . (strpos($html, '/db-asset/background_1') !== false ? 'yes' : 'no')
+                . ' logo=' . (strpos($html, '/db-asset/site_logo') !== false ? 'yes' : 'no'), 200)
+                ->header('Content-Type', 'text/plain');
+        } catch (\Throwable $e) {
+            return response('ERR ' . get_class($e) . ' | ' . $e->getMessage()
+                . ' | ' . $e->getFile() . ':' . $e->getLine()
+                . ' | ' . substr(str_replace(["\n", "\r"], ' ', $e->getTraceAsString()), 0, 700), 200)
+                ->header('Content-Type', 'text/plain');
+        }
+    }
+
+    if ($mode === 'view') {
+        \Illuminate\Support\Facades\Auth::loginUsingId(1);
+        $name = (string) request()->query('vw', 'auth.login');
+        $data = [];
+        if ($name === 'panel.site') { $data = ['home_message' => 'default']; }
+        if ($name === 'studio.theme') { $data = ['pages' => \App\Models\User::where('id', 1)->select('littlelink_name', 'theme')->get()]; }
+        if ($name === 'panel.edit-user') { $data = ['user' => \App\Models\User::find(1)]; }
+        try {
+            $html = view($name, $data)->render();
+            return response('OK ' . $name . ' bytes=' . strlen($html)
+                . ' logo=' . (strpos($html, '/db-asset/site_logo') !== false ? 'yes' : 'no')
+                . ' bg=' . (strpos($html, '/db-asset/background_1') !== false ? 'yes' : 'no')
+                . ' themefile=' . (strpos($html, '/theme-file/') !== false ? 'yes' : 'no')
+                . ' delbg=' . (strpos($html, 'delbackground') !== false ? 'yes' : 'no'), 200)
+                ->header('Content-Type', 'text/plain');
+        } catch (\Throwable $e) {
+            return response('ERR ' . $name . ' ' . get_class($e) . ' | ' . $e->getMessage()
+                . ' | ' . $e->getFile() . ':' . $e->getLine()
+                . ' | ' . substr(str_replace(["\n", "\r"], ' ', $e->getTraceAsString()), 0, 700), 200)
+                ->header('Content-Type', 'text/plain');
+        }
+    }
+
     if ($mode === 'render') {
         \Illuminate\Support\Facades\Auth::loginUsingId(1);
         $views = [
