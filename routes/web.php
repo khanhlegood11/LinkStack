@@ -44,40 +44,59 @@ Route::get('/__diagnose-view', function () {
         abort(404);
     }
 
-    Auth::loginUsingId((int) request('user', 1));
-
     $case = (string) request('case', 'links');
+    $result = ['case' => $case, 'ok' => false];
 
     try {
+        Auth::loginUsingId((int) request('user', 1));
+
         switch ($case) {
+            case 'query':
+                $links = \App\Models\Link::select()
+                    ->where('user_id', Auth::id())
+                    ->orderBy('up_link', 'asc')
+                    ->orderBy('order', 'asc')
+                    ->paginate(99999);
+                $result['total'] = $links->total();
+                $result['ok'] = true;
+                break;
+            case 'cookie':
+                setcookie('LinkCount', '', time() - 3600);
+                $result['ok'] = true;
+                break;
+            case 'view':
+                $links = \App\Models\Link::select()
+                    ->where('user_id', Auth::id())
+                    ->orderBy('up_link', 'asc')
+                    ->orderBy('order', 'asc')
+                    ->paginate(99999);
+                $result['bytes'] = strlen(view('studio/links', ['links' => $links, 'pagePage' => 10])->render());
+                $result['ok'] = true;
+                break;
             case 'layout':
-                $html = view('layouts.sidebar')->render();
+                $result['bytes'] = strlen(view('layouts.sidebar')->render());
+                $result['ok'] = true;
                 break;
             case 'dashboard':
-                $html = app(AdminController::class)->index()->render();
+                $result['bytes'] = strlen(app(AdminController::class)->index()->render());
+                $result['ok'] = true;
                 break;
             case 'links':
             default:
-                $html = app(UserController::class)->showLinks()->render();
+                $result['bytes'] = strlen(app(UserController::class)->showLinks()->render());
+                $result['ok'] = true;
                 break;
         }
-
-        return response('OK ' . $case . ' bytes=' . strlen($html), 200)
-            ->header('Content-Type', 'text/plain; charset=UTF-8');
     } catch (\Throwable $e) {
-        $previous = $e->getPrevious();
-        $details = get_class($e) . ': ' . $e->getMessage() . "\n"
-            . $e->getFile() . ':' . $e->getLine() . "\n";
-
-        if ($previous) {
-            $details .= "\nPREVIOUS: " . get_class($previous) . ': ' . $previous->getMessage() . "\n"
-                . $previous->getFile() . ':' . $previous->getLine() . "\n";
+        $result['error'] = get_class($e) . ': ' . $e->getMessage();
+        $result['where'] = $e->getFile() . ':' . $e->getLine();
+        $result['trace'] = substr($e->getTraceAsString(), 0, 1200);
+        if ($e->getPrevious()) {
+            $result['previous'] = get_class($e->getPrevious()) . ': ' . $e->getPrevious()->getMessage();
         }
-
-        $details .= "\n" . $e->getTraceAsString();
-
-        return response($details, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
     }
+
+    return response()->json($result, 200);
 })->middleware('web');
 
  // Installer
