@@ -38,39 +38,6 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
-// Temporary handle-validation probe; removed after verification.
-Route::get('/__verify-handle', function (Illuminate\Http\Request $request) {
-    if ($request->query('token') !== 'ls-verify-handle-8f3b21c9') {
-        abort(404);
-    }
-
-    try {
-        $user = User::findOrFail((int) $request->query('user', 1));
-        Auth::login($user);
-        $other = User::where('id', '!=', $user->id)->firstOrFail();
-        $controller = new \App\Http\Controllers\Auth\RegisteredUserController();
-
-        $probe = function ($handle) use ($controller) {
-            $probeRequest = Illuminate\Http\Request::create(
-                '/validate-handle',
-                'POST',
-                ['littlelink_name' => $handle]
-            );
-
-            return $controller->validateHandle($probeRequest)->getContent();
-        };
-
-        return response('OK user=' . $user->id
-            . ' own=' . $probe($user->littlelink_name)
-            . ' other=' . $probe($other->littlelink_name)
-            . ' empty=' . $probe(''), 200)
-            ->header('Content-Type', 'text/plain');
-    } catch (\Throwable $e) {
-        return response('ERROR ' . get_class($e) . ': ' . $e->getMessage(), 500)
-            ->header('Content-Type', 'text/plain');
-    }
-});
-
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
 
