@@ -47,6 +47,34 @@ Route::get('/__diagnose-view', function () {
     $case = (string) request('case', 'links');
     $result = ['case' => $case, 'ok' => false];
 
+    $write = function (string $key, array $payload) {
+        try {
+            \Illuminate\Support\Facades\DB::table('runtime_settings')->updateOrInsert(
+                ['key' => $key],
+                [
+                    'value' => substr(json_encode($payload, JSON_INVALID_UTF8_SUBSTITUTE | JSON_PARTIAL_OUTPUT_ON_ERROR), 0, 8000),
+                    'created_at' => \Carbon\Carbon::now(),
+                    'updated_at' => \Carbon\Carbon::now(),
+                ]
+            );
+        } catch (\Throwable $e) {
+            // Nothing else we can do.
+        }
+    };
+
+    $report = fn (array $payload) => $write('__diag_result', $payload);
+
+    register_shutdown_function(function () use ($write, $case) {
+        $error = error_get_last();
+        if ($error && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_RECOVERABLE_ERROR], true)) {
+            $write('__diag_fatal', ['case' => $case, 'fatal' => $error]);
+        }
+    });
+
+    \Illuminate\Support\Facades\View::composer('*', function ($view) use ($report) {
+        $report(['stage' => 'view:' . $view->getName()]);
+    });
+
     try {
         Auth::loginUsingId((int) request('user', 1));
 
@@ -96,7 +124,10 @@ Route::get('/__diagnose-view', function () {
         }
     }
 
-    return response()->json($result, 200);
+    $report($result);
+
+    return response($result['ok'] ? 'DIAG_OK' : 'DIAG_ERROR', 200)
+        ->header('Content-Type', 'text/plain; charset=UTF-8');
 })->middleware('web');
 
  // Installer
