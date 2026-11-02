@@ -38,6 +38,48 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
+// TEMPORARY diagnostic route (removed after troubleshooting).
+Route::get('/__diagnose-view', function () {
+    if (request('token') !== 'ls-diag-8f3b21c9') {
+        abort(404);
+    }
+
+    Auth::loginUsingId((int) request('user', 1));
+
+    $case = (string) request('case', 'links');
+
+    try {
+        switch ($case) {
+            case 'layout':
+                $html = view('layouts.sidebar')->render();
+                break;
+            case 'dashboard':
+                $html = app(AdminController::class)->index()->render();
+                break;
+            case 'links':
+            default:
+                $html = app(UserController::class)->showLinks()->render();
+                break;
+        }
+
+        return response('OK ' . $case . ' bytes=' . strlen($html), 200)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    } catch (\Throwable $e) {
+        $previous = $e->getPrevious();
+        $details = get_class($e) . ': ' . $e->getMessage() . "\n"
+            . $e->getFile() . ':' . $e->getLine() . "\n";
+
+        if ($previous) {
+            $details .= "\nPREVIOUS: " . get_class($previous) . ': ' . $previous->getMessage() . "\n"
+                . $previous->getFile() . ':' . $previous->getLine() . "\n";
+        }
+
+        $details .= "\n" . $e->getTraceAsString();
+
+        return response($details, 200)->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+})->middleware('web');
+
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
 
