@@ -38,6 +38,11 @@ Route::get('/health', function () {
     return response()->json(['status' => 'ok']);
 });
 
+// Serve profile pictures that are persisted in the database on Vercel.
+Route::get('/avatar/{id}', [UserController::class, 'serveAvatar'])
+    ->where('id', '[0-9]+')
+    ->name('serveAvatar');
+
  // Installer
 if(!$appInstalled && (file_exists(base_path('INSTALLING')) or file_exists(base_path('INSTALLERLOCK')))){
 
@@ -167,6 +172,7 @@ Route::group([
     Route::get('/admin/users/verify-mail/{verify}/{id}', [AdminController::class, 'verifyUser'])->name('verifyUser');
     Route::get('/admin/edit-user/{id}', [AdminController::class, 'showUser'])->name('showUser');
     Route::post('/admin/edit-user/{id}', [AdminController::class, 'editUser'])->name('editUser');
+    Route::get('/admin/edit-user/{id}/delavatar', [AdminController::class, 'delUserAvatar'])->name('delUserAvatar');
     Route::get('/admin/new-user', [AdminController::class, 'createNewUser'])->name('createNewUser')->middleware('max.users');
     Route::get('/admin/delete-user/{id}', [AdminController::class, 'deleteUser'])->name('deleteUser');
     Route::post('/admin/delete-table-user/{id}', [AdminController::class, 'deleteTableUser'])->name('deleteTableUser');

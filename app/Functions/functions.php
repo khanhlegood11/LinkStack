@@ -255,3 +255,156 @@ function block_text($text) {
 function bt($text) {
   return block_text($text);
 }
+
+/* --------------------------------------------------------------------------
+ | Database-backed profile pictures
+ | --------------------------------------------------------------------------
+ | The Vercel container has a read-only, ephemeral filesystem, so uploading to
+ | assets/img cannot work there. On Vercel profile pictures are persisted in
+ | the public.user_avatars table and served through /avatar/{id}. Local
+ | installations keep the original file-based behaviour.
+ * -------------------------------------------------------------------------- */
+
+if (!function_exists('dbAvatarMeta')) {
+    /**
+     * Cheap lookup: deliberately does not select the (large) base64 payload.
+     */
+    function dbAvatarMeta($userId): ?object
+    {
+        if (!env('VERCEL')) {
+            return null;
+        }
+
+        try {
+            return \Illuminate\Support\Facades\DB::table('user_avatars')
+                ->select('user_id', 'mime', 'extension', 'updated_at')
+                ->where('user_id', (int) $userId)
+                ->first();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('dbAvatarData')) {
+    function dbAvatarData($userId): ?object
+    {
+        try {
+            return \Illuminate\Support\Facades\DB::table('user_avatars')
+                ->where('user_id', (int) $userId)
+                ->first();
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('hasAvatar')) {
+    function hasAvatar($userId): bool
+    {
+        if (dbAvatarMeta($userId) !== null) {
+            return true;
+        }
+
+        $legacy = findAvatar($userId);
+        return $legacy !== 'error.error' && is_file(base_path($legacy));
+    }
+}
+
+if (!function_exists('avatarUrl')) {
+    function avatarUrl($userId): string
+    {
+        $row = dbAvatarMeta($userId);
+        if ($row !== null) {
+            $version = strtotime((string) $row->updated_at);
+            return url('avatar/' . (int) $userId) . '?v=' . ($version ?: 0);
+        }
+
+        $legacy = findAvatar($userId);
+        if ($legacy !== 'error.error' && is_file(base_path($legacy))) {
+            return url($legacy);
+        }
+
+        return asset('assets/linkstack/images/logo.svg');
+    }
+}
+
+if (!function_exists('saveDbAvatar')) {
+    /**
+     * Persist an uploaded image in Postgres. Returns false when the file is
+     * invalid or when the table is unavailable.
+     */
+    function saveDbAvatar($userId, $uploadedFile): bool
+    {
+        if (!env('VERCEL') || !$uploadedFile
+            || !method_exists($uploadedFile, 'isValid')
+            || !$uploadedFile->isValid()) {
+            return false;
+        }
+
+        $path = $uploadedFile->getRealPath();
+        $binary = $path ? file_get_contents($path) : false;
+        if ($binary === false || $binary === '' || strlen($binary) > 4 * 1024 * 1024) {
+            return false;
+        }
+
+        $mimeMap = [
+            'image/jpeg' => 'jpg',
+            'image/jpg'  => 'jpg',
+            'image/pjpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/webp' => 'webp',
+        ];
+        $mime = strtolower((string) $uploadedFile->getMimeType());
+        $extension = $mimeMap[$mime] ?? strtolower((string) $uploadedFile->getClientOriginalExtension());
+        if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'], true)) {
+            $extension = 'png';
+        }
+        if ($extension === 'jpeg') {
+            $extension = 'jpg';
+        }
+        if (!isset($mimeMap[$mime])) {
+            $mime = $extension === 'jpg' ? 'image/jpeg' : 'image/' . $extension;
+        }
+
+        $id = (int) $userId;
+        $now = \Carbon\Carbon::now();
+        $payload = [
+            'mime' => $mime,
+            'extension' => $extension,
+            'data' => base64_encode($binary),
+            'updated_at' => $now,
+        ];
+
+        try {
+            $exists = \Illuminate\Support\Facades\DB::table('user_avatars')
+                ->where('user_id', $id)->exists();
+
+            if ($exists) {
+                \Illuminate\Support\Facades\DB::table('user_avatars')
+                    ->where('user_id', $id)->update($payload);
+            } else {
+                \Illuminate\Support\Facades\DB::table('user_avatars')->insert(
+                    $payload + ['user_id' => $id, 'created_at' => $now]
+                );
+            }
+
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('deleteDbAvatar')) {
+    function deleteDbAvatar($userId): bool
+    {
+        try {
+            \Illuminate\Support\Facades\DB::table('user_avatars')
+                ->where('user_id', (int) $userId)->delete();
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}

@@ -369,7 +369,12 @@ class AdminController extends Controller
       ]);
     }
     if (!empty($profilePhoto)) {
-      $profilePhoto->move(base_path("assets/img"), $id . "_" . time() . ".png");
+      if (env('VERCEL')) {
+        // Profile pictures live in Postgres on Vercel (read-only filesystem).
+        saveDbAvatar($id, $profilePhoto);
+      } else {
+        $profilePhoto->move(base_path("assets/img"), $id . "_" . time() . ".png");
+      }
     }
     if (!empty($customBackground)) {
       $directory = base_path("assets/img/background-img/");
@@ -470,6 +475,21 @@ class AdminController extends Controller
         "favicon" . "_" . time() . "." . $request->file("icon")->extension(),
       );
     }
+    return back();
+  }
+
+  //Delete a user's profile picture (database-backed on Vercel)
+  public function delUserAvatar($id)
+  {
+    if (env('VERCEL')) {
+      deleteDbAvatar($id);
+    } else {
+      while (findAvatar($id) !== "error.error") {
+        $avatarName = findAvatar($id);
+        unlink(base_path($avatarName));
+      }
+    }
+
     return back();
   }
 
